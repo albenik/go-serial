@@ -1,5 +1,7 @@
 # go-serial
 
+[![Build Status](https://travis-ci.org/albenik/go-serial.svg?branch=master)](https://travis-ci.org/albenik/go-serial)
+
 A cross-platform serial library for go-lang based on [github.com/bugst/go-serial](https://github.com/bugst/go-serial) and  edited for use under own import path.
 
 ## Documentation and examples

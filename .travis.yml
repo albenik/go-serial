@@ -25,9 +25,13 @@ matrix:
 before_install:
   - go get -v -u golang.org/x/vgo
 
+install:
+
 script:
-  - GOARM=5 GO386=387 GOOS=$TEST_OS GOARCH=$TEST_ARCH vgo build -v ./...
-  - GOARM=5 GO386=387 GOOS=$TEST_OS GOARCH=$TEST_ARCH vgo test -v ./...
+  - GOARM=5 GO386=387 GOOS=$TEST_OS GOARCH=$TEST_ARCH vgo build -v
+  - GOARM=5 GO386=387 GOOS=$TEST_OS GOARCH=$TEST_ARCH vgo test -c -v
+  - if [[ $TEST_OS == "linux" && ($TEST_ARCH == "386" || $TEST_ARCH == "amd64") ]]; then GO386=387 GOOS=$TEST_OS GOARCH=$TEST_ARCH vgo test -v ./...; fi
+
 
 notifications:
   email:
