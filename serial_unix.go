@@ -100,15 +100,15 @@ func (port *unixPort) Read(p []byte) (int, error) {
 		if !res.IsReadable(port.handle) {
 			break
 		}
-		n, err := unix.Read(port.handle, buf)
-		// read should always return some data as select reported it was ready to read when we get to this point.
+		n, err := unix.Read(port.handle, buf[read:])
+		// read should always return some data as select reported, it was ready to read when we got to this point.
 		if err == nil && n == 0 {
 			err = &PortError{code: ReadFailed}
 		}
 		if err != nil {
 			return read, err
 		}
-		copy(p[read:], buf[:n])
+		copy(p[read:], buf[read:read+n])
 		read += n
 
 		now = time.Now()
