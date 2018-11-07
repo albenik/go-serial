@@ -193,35 +193,35 @@ const (
 func (e PortError) EncodedErrorString() string {
 	switch e.code {
 	case PortBusy:
-		return "Serial port busy"
+		return "serial port busy"
 	case PortNotFound:
-		return "Serial port not found"
+		return "serial port not found"
 	case InvalidSerialPort:
-		return "Invalid serial port"
+		return "invalid serial port"
 	case PermissionDenied:
-		return "Permission denied"
+		return "permission denied"
 	case InvalidSpeed:
-		return "Port speed invalid or not supported"
+		return "port speed invalid or not supported"
 	case InvalidDataBits:
-		return "Port data bits invalid or not supported"
+		return "port data bits invalid or not supported"
 	case InvalidParity:
-		return "Port parity invalid or not supported"
+		return "port parity invalid or not supported"
 	case InvalidStopBits:
-		return "Port stop bits invalid or not supported"
+		return "port stop bits invalid or not supported"
 	case InvalidTimeoutValue:
-		return "Timeout value invalid or not supported"
+		return "timeout value invalid or not supported"
 	case ErrorEnumeratingPorts:
-		return "Could not enumerate serial ports"
+		return "could not enumerate serial ports"
 	case PortClosed:
-		return "Port has been closed"
+		return "port has been closed"
 	case FunctionNotImplemented:
-		return "Function not implemented"
+		return "function not implemented"
 	case OsError:
-		return "Operating system error"
+		return "operating system error"
 	case WriteFailed:
-		return "Write failed"
+		return "write failed"
 	default:
-		return "Other error"
+		return "other error"
 	}
 }
 

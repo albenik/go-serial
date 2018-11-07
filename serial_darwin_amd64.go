@@ -1,7 +1,7 @@
 //
 // Copyright 2014-2017 Cristian Maglie. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
+// Use of this source code is governed by a BSD-style license
+// that can be found in the LICENSE file.
 //
 
 package serial
@@ -46,7 +46,7 @@ const tcIUCLC uint64 = 0
 const tcCCTS_OFLOW uint64 = 0x00010000
 const tcCRTS_IFLOW uint64 = 0x00020000
 
-const tcCRTSCTS uint64 = (tcCCTS_OFLOW | tcCRTS_IFLOW)
+const tcCRTSCTS = tcCCTS_OFLOW | tcCRTS_IFLOW
 
 func toTermiosSpeedType(speed uint64) uint64 {
 	return speed

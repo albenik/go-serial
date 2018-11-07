@@ -8,14 +8,14 @@
 
 package unixutils
 
-import "syscall"
-import "fmt"
+import (
+	"syscall"
+)
 
 // Pipe represents a unix-pipe
 type Pipe struct {
-	opened bool
-	rd     int
-	wr     int
+	r int
+	w int
 }
 
 // Open creates a new pipe
@@ -24,52 +24,35 @@ func (p *Pipe) Open() error {
 	if err := syscall.Pipe(fds); err != nil {
 		return err
 	}
-	p.rd = fds[0]
-	p.wr = fds[1]
-	p.opened = true
+	p.r = fds[0]
+	p.w = fds[1]
 	return nil
 }
 
 // ReadFD returns the file handle for the read side of the pipe.
 func (p *Pipe) ReadFD() int {
-	if !p.opened {
-		return -1
-	}
-	return p.rd
+	return p.r
 }
 
 // WriteFD returns the flie handle for the write side of the pipe.
 func (p *Pipe) WriteFD() int {
-	if !p.opened {
-		return -1
-	}
-	return p.wr
+	return p.w
 }
 
 // Write to the pipe the content of data. Returns the numbre of bytes written.
 func (p *Pipe) Write(data []byte) (int, error) {
-	if !p.opened {
-		return 0, fmt.Errorf("Pipe not opened")
-	}
-	return syscall.Write(p.wr, data)
+	return syscall.Write(p.w, data)
 }
 
 // Read from the pipe into the data array. Returns the number of bytes read.
 func (p *Pipe) Read(data []byte) (int, error) {
-	if !p.opened {
-		return 0, fmt.Errorf("Pipe not opened")
-	}
-	return syscall.Read(p.rd, data)
+	return syscall.Read(p.r, data)
 }
 
 // Close the pipe
 func (p *Pipe) Close() error {
-	if !p.opened {
-		return fmt.Errorf("Pipe not opened")
-	}
-	err1 := syscall.Close(p.rd)
-	err2 := syscall.Close(p.wr)
-	p.opened = false
+	err1 := syscall.Close(p.r)
+	err2 := syscall.Close(p.w)
 	if err1 != nil {
 		return err1
 	}

@@ -12,7 +12,6 @@ import (
 	"io/ioutil"
 	"regexp"
 	"strings"
-	"sync"
 	"time"
 	"unsafe"
 
@@ -24,14 +23,13 @@ import (
 type unixPort struct {
 	name   string
 	handle int
+	opened bool
 
 	firstByteTimeout bool
 	readTimeout      int
 	writeTimeout     int
 
-	closeLock   sync.RWMutex
-	closeSignal *unixutils.Pipe
-	opened      bool
+	closeSignal *unixutils.Pipe // TODO async port close implementation not clear
 }
 
 func (port *unixPort) String() string {
@@ -39,35 +37,39 @@ func (port *unixPort) String() string {
 }
 
 func (port *unixPort) Close() error {
-	// Close port
-	port.releaseExclusiveAccess()
-	if err := unix.Close(port.handle); err != nil {
-		return err
+	if !port.opened {
+		return &PortError{code: PortClosed}
 	}
-	port.opened = false
 
-	if port.closeSignal != nil {
-		// Send close signal to all pending reads (if any)
-		port.closeSignal.Write([]byte{0})
-
-		// Wait for all readers to complete
-		port.closeLock.Lock()
-		defer port.closeLock.Unlock()
-
-		// Close signaling pipe
+	err := func() error {
+		// Send close signal to all pending reads (if any) and close signaling pipe
+		if _, err := port.closeSignal.Write([]byte{0}); err != nil {
+			return err
+		}
 		if err := port.closeSignal.Close(); err != nil {
 			return err
 		}
+		// Release exclusive access
+		if err := ioctl(port.handle, unix.TIOCNXCL, 0); err != nil {
+			return err
+		}
+		if err := unix.Close(port.handle); err != nil {
+			return err
+		}
+		return nil
+	}()
+
+	if err != nil {
+		return &PortError{code: OsError, causedBy: err}
 	}
 	return nil
 }
 
 func (port *unixPort) ReadyToRead() (uint32, error) {
-	port.closeLock.RLock()
-	defer port.closeLock.RUnlock()
 	if !port.opened {
 		return 0, &PortError{code: PortClosed}
 	}
+
 	var n uint32
 	if err := ioctl(port.handle, FIONREAD, uintptr(unsafe.Pointer(&n))); err != nil {
 		return 0, &PortError{code: OsError, causedBy: err}
@@ -76,8 +78,6 @@ func (port *unixPort) ReadyToRead() (uint32, error) {
 }
 
 func (port *unixPort) Read(p []byte) (int, error) {
-	port.closeLock.RLock()
-	defer port.closeLock.RUnlock()
 	if !port.opened {
 		return 0, &PortError{code: PortClosed}
 	}
@@ -98,30 +98,30 @@ func (port *unixPort) Read(p []byte) (int, error) {
 			return read, &PortError{code: PortClosed}
 		}
 		if !res.IsReadable(port.handle) {
-			break
+			return read, nil
 		}
+
 		n, err := unix.Read(port.handle, buf[read:])
-		// read should always return some data as select reported, it was ready to read when we got to this point.
-		if err == nil && n == 0 {
-			err = &PortError{code: ReadFailed}
-		}
 		if err != nil {
 			return read, err
 		}
+		// read should always return some data as select reported, it was ready to read when we got to this point.
+		if n == 0 {
+			return read, &PortError{code: ReadFailed}
+		}
+
 		copy(p[read:], buf[read:read+n])
 		read += n
 
 		now = time.Now()
 		if !now.Before(deadline) || port.firstByteTimeout {
-			break
+			return read, nil
 		}
 	}
 	return read, nil
 }
 
 func (port *unixPort) Write(p []byte) (int, error) {
-	port.closeLock.RLock()
-	defer port.closeLock.RUnlock()
 	if !port.opened {
 		return 0, &PortError{code: PortClosed}
 	}
@@ -160,14 +160,24 @@ func (port *unixPort) Write(p []byte) (int, error) {
 }
 
 func (port *unixPort) ResetInputBuffer() error {
+	if !port.opened {
+		return &PortError{code: PortClosed}
+	}
 	return ioctl(port.handle, ioctlTcflsh, unix.TCIFLUSH)
 }
 
 func (port *unixPort) ResetOutputBuffer() error {
+	if !port.opened {
+		return &PortError{code: PortClosed}
+	}
 	return ioctl(port.handle, ioctlTcflsh, unix.TCOFLUSH)
 }
 
 func (port *unixPort) SetMode(mode *Mode) error {
+	if !port.opened {
+		return &PortError{code: PortClosed}
+	}
+
 	settings, err := port.getTermSettings()
 	if err != nil {
 		return err
@@ -188,6 +198,10 @@ func (port *unixPort) SetMode(mode *Mode) error {
 }
 
 func (port *unixPort) SetDTR(dtr bool) error {
+	if !port.opened {
+		return &PortError{code: PortClosed}
+	}
+
 	status, err := port.getModemBitsStatus()
 	if err != nil {
 		return err
@@ -201,6 +215,10 @@ func (port *unixPort) SetDTR(dtr bool) error {
 }
 
 func (port *unixPort) SetRTS(rts bool) error {
+	if !port.opened {
+		return &PortError{code: PortClosed}
+	}
+
 	status, err := port.getModemBitsStatus()
 	if err != nil {
 		return err
@@ -214,31 +232,51 @@ func (port *unixPort) SetRTS(rts bool) error {
 }
 
 func (port *unixPort) SetReadTimeout(t int) error {
+	if !port.opened {
+		return &PortError{code: PortClosed}
+	}
+
 	port.firstByteTimeout = false
 	port.readTimeout = t
 	return nil // timeout is done via select
 }
 
 func (port *unixPort) SetReadTimeoutEx(t, i uint32) error {
-	port.closeLock.RLock()
-	defer port.closeLock.RUnlock()
 	if !port.opened {
 		return &PortError{code: PortClosed}
 	}
 
-	port.firstByteTimeout = false
-	port.readTimeout = int(t)
 	settings, err := port.getTermSettings()
 	if err != nil {
 		return err
 	}
-	if err := setTermSettingsInterbyteTimeout(int(t), settings); err != nil {
-		return err
+
+	vtime := t / 100 // VTIME tenths of a second elapses between bytes
+	if vtime > 255 || vtime*100 != t {
+		return &PortError{code: InvalidTimeoutValue}
 	}
-	return port.setTermSettings(settings)
+	if vtime > 0 {
+		settings.Cc[unix.VMIN] = 1
+		settings.Cc[unix.VTIME] = uint8(t)
+	} else {
+		settings.Cc[unix.VMIN] = 0
+		settings.Cc[unix.VTIME] = 0
+	}
+
+	if err = port.setTermSettings(settings); err != nil {
+		return &PortError{code: OsError, causedBy: err}
+	}
+
+	port.firstByteTimeout = false
+	port.readTimeout = int(t)
+	return nil
 }
 
 func (port *unixPort) SetFirstByteReadTimeout(t uint32) error {
+	if !port.opened {
+		return &PortError{code: PortClosed}
+	}
+
 	if t > 0 && t < 0xFFFFFFFF {
 		port.firstByteTimeout = true
 		port.readTimeout = int(t)
@@ -249,11 +287,19 @@ func (port *unixPort) SetFirstByteReadTimeout(t uint32) error {
 }
 
 func (port *unixPort) SetWriteTimeout(t int) error {
+	if !port.opened {
+		return &PortError{code: PortClosed}
+	}
+
 	port.writeTimeout = t
 	return nil // timeout is done via select
 }
 
 func (port *unixPort) GetModemStatusBits() (*ModemStatusBits, error) {
+	if !port.opened {
+		return nil, &PortError{code: PortClosed}
+	}
+
 	status, err := port.getModemBitsStatus()
 	if err != nil {
 		return nil, err
@@ -310,9 +356,13 @@ func nativeOpen(portName string, mode *Mode) (*unixPort, error) {
 		return nil, &PortError{code: InvalidSerialPort}
 	}
 
-	unix.SetNonblock(h, false)
-
-	port.acquireExclusiveAccess()
+	if err = unix.SetNonblock(h, false); err != nil {
+		return nil, &PortError{code: OsError, causedBy: err}
+	}
+	// Accquire exclusive access
+	if err = ioctl(port.handle, unix.TIOCEXCL, 0); err != nil {
+		return nil, &PortError{code: OsError, causedBy: err}
+	}
 
 	// This pipe is used as a signal to cancel blocking Read
 	pipe := &unixutils.Pipe{}
@@ -498,25 +548,10 @@ func setRawMode(settings *unix.Termios) {
 	settings.Cc[unix.VTIME] = 0
 }
 
-func setTermSettingsInterbyteTimeout(timeout int, settings *unix.Termios) error {
-	vtime := timeout / 100 // VTIME tenths of a second elapses between bytes
-	if vtime > 255 || vtime*100 != timeout {
-		return &PortError{code: InvalidTimeoutValue}
-	}
-	if vtime > 0 {
-		settings.Cc[unix.VMIN] = 1
-		settings.Cc[unix.VTIME] = uint8(timeout)
-	} else {
-		settings.Cc[unix.VMIN] = 0
-		settings.Cc[unix.VTIME] = 0
-	}
-	return nil
-}
-
 // native syscall wrapper functions
 
 func (port *unixPort) getTermSettings() (*unix.Termios, error) {
-	settings := &unix.Termios{}
+	settings := new(unix.Termios)
 	err := ioctl(port.handle, ioctlTcgetattr, uintptr(unsafe.Pointer(settings)))
 	return settings, err
 }
@@ -533,12 +568,4 @@ func (port *unixPort) getModemBitsStatus() (int, error) {
 
 func (port *unixPort) setModemBitsStatus(status int) error {
 	return ioctl(port.handle, unix.TIOCMSET, uintptr(unsafe.Pointer(&status)))
-}
-
-func (port *unixPort) acquireExclusiveAccess() error {
-	return ioctl(port.handle, unix.TIOCEXCL, 0)
-}
-
-func (port *unixPort) releaseExclusiveAccess() error {
-	return ioctl(port.handle, unix.TIOCNXCL, 0)
 }
