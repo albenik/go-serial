@@ -1,33 +1,35 @@
 language: go
 
 go:
+  - 1.10.x
   - 1.11.x
+  - 1.12.x
+
+dist: xenial
 
 go_import_path: github.com/albenik/go-serial
 
 env:
-  - TEST_OS=linux TEST_ARCH=386
-  - TEST_OS=linux TEST_ARCH=amd64
-  - TEST_OS=linux TEST_ARCH=arm
-  - TEST_OS=windows TEST_ARCH=386
-  - TEST_OS=windows TEST_ARCH=amd64
-  - TEST_OS=darwin TEST_ARCH=386
-  - TEST_OS=darwin TEST_ARCH=amd64
-  - TEST_OS=freebsd TEST_ARCH=amd64
-  - TEST_OS=openbsd TEST_ARCH=amd64
-  - TEST_OS=openbsd TEST_ARCH=386
-  - TEST_OS=openbsd TEST_ARCH=arm
+  - GOOS=linux GOARCH=386
+  - GOOS=linux GOARCH=amd64
+  - GOOS=linux GOARCH=arm
+  - GOOS=windows GOARCH=386
+  - GOOS=windows GOARCH=amd64
+  - GOOS=darwin GOARCH=386
+  - GOOS=darwin GOARCH=amd64
+  - GOOS=freebsd GOARCH=amd64
+  - GOOS=openbsd GOARCH=amd64
+  - GOOS=openbsd GOARCH=386
+  - GOOS=openbsd GOARCH=arm
 
 matrix:
   allow_failures:
-    - env: TEST_OS=openbsd TEST_ARCH=arm
-
-install:
+    - env: GOOS=openbsd GOARCH=arm
 
 script:
-  - GOARM=5 GO386=387 GOOS=$TEST_OS GOARCH=$TEST_ARCH go build -v
-  - GOARM=5 GO386=387 GOOS=$TEST_OS GOARCH=$TEST_ARCH go test -c -v
-  - if [[ $TEST_OS == "linux" && ($TEST_ARCH == "386" || $TEST_ARCH == "amd64") ]]; then GO386=387 GOOS=$TEST_OS GOARCH=$TEST_ARCH go test -v ./...; fi
+  - GOARM=5 GO386=387 GOOS=$GOOS GOARCH=$GOARCH go build -v
+  - GOARM=5 GO386=387 GOOS=$GOOS GOARCH=$GOARCH go test -c -v
+  - if [[ $GOOS == "linux" && ($GOARCH == "386" || $GOARCH == "amd64") ]]; then GO386=387 GOOS=$GOOS GOARCH=$GOARCH go test -v ./...; fi
 
 
 notifications:
@@ -36,4 +38,3 @@ notifications:
       - albenik@gmail.com
     on_success: change
     on_failure: always
-
