@@ -46,6 +46,93 @@ var (
 	}
 )
 
+func getPortsList() ([]string, error) {
+	subKey, err := syscall.UTF16PtrFromString("HARDWARE\\DEVICEMAP\\SERIALCOMM\\")
+	if err != nil {
+		return nil, &PortError{code: ErrorEnumeratingPorts}
+	}
+
+	var h syscall.Handle
+	if syscall.RegOpenKeyEx(syscall.HKEY_LOCAL_MACHINE, subKey, 0, syscall.KEY_READ, &h) != nil {
+		return nil, &PortError{code: ErrorEnumeratingPorts}
+	}
+	defer syscall.RegCloseKey(h)
+
+	var valuesCount uint32
+	if syscall.RegQueryInfoKey(h, nil, nil, nil, nil, nil, nil, &valuesCount, nil, nil, nil, nil) != nil {
+		return nil, &PortError{code: ErrorEnumeratingPorts}
+	}
+
+	list := make([]string, valuesCount)
+	for i := range list {
+		var data [1024]uint16
+		dataSize := uint32(len(data))
+		var name [1024]uint16
+		nameSize := uint32(len(name))
+		if regEnumValue(h, uint32(i), &name[0], &nameSize, nil, nil, &data[0], &dataSize) != nil {
+			return nil, &PortError{code: ErrorEnumeratingPorts}
+		}
+		list[i] = syscall.UTF16ToString(data[:])
+	}
+	return list, nil
+}
+
+func openPort(portName string, mode *Mode) (*windowsPort, error) {
+	path, err := syscall.UTF16PtrFromString("\\\\.\\" + portName)
+	if err != nil {
+		return nil, err
+	}
+	handle, err := syscall.CreateFile(
+		path,
+		syscall.GENERIC_READ|syscall.GENERIC_WRITE,
+		0,   // exclusive access
+		nil, // no security
+		syscall.OPEN_EXISTING,
+		syscall.FILE_ATTRIBUTE_NORMAL|syscall.FILE_FLAG_OVERLAPPED,
+		0)
+	if err != nil {
+		switch err {
+		case syscall.ERROR_ACCESS_DENIED:
+			return nil, &PortError{code: PortBusy}
+		case syscall.ERROR_FILE_NOT_FOUND:
+			return nil, &PortError{code: PortNotFound}
+		}
+		return nil, err
+	}
+	// Create the serial port
+	port := &windowsPort{
+		name:   portName,
+		handle: handle,
+		mode:   mode,
+		timeouts: &commTimeouts{
+			// Legacy initial timeouts configuration: 1 sec read timeout
+			ReadIntervalTimeout:         0xFFFFFFFF,
+			ReadTotalTimeoutMultiplier:  0xFFFFFFFF,
+			ReadTotalTimeoutConstant:    1000,
+			WriteTotalTimeoutMultiplier: 0,
+			WriteTotalTimeoutConstant:   0,
+		},
+	}
+
+	if err = port.reconfigurePort(); err != nil {
+		port.Close()
+		return nil, err
+	}
+	return port, nil
+}
+
+func (port *windowsPort) Close() error {
+	if port.handle == syscall.InvalidHandle {
+		return nil
+	}
+	err := syscall.CloseHandle(port.handle)
+	port.handle = syscall.InvalidHandle
+	if err != nil {
+		return &PortError{code: OsError, causedBy: err}
+	}
+	return nil
+}
+
 func (port *windowsPort) String() string {
 	return port.name
 }
@@ -338,93 +425,6 @@ func (port *windowsPort) SetWriteTimeout(t int) error {
 		port.timeouts.WriteTotalTimeoutConstant = uint32(t)
 	}
 	return port.reconfigurePort()
-}
-
-func (port *windowsPort) Close() error {
-	if port.handle == syscall.InvalidHandle {
-		return nil
-	}
-	err := syscall.CloseHandle(port.handle)
-	port.handle = syscall.InvalidHandle
-	if err != nil {
-		return &PortError{code: OsError, causedBy: err}
-	}
-	return nil
-}
-
-func nativeOpen(portName string, mode *Mode) (*windowsPort, error) {
-	path, err := syscall.UTF16PtrFromString("\\\\.\\" + portName)
-	if err != nil {
-		return nil, err
-	}
-	handle, err := syscall.CreateFile(
-		path,
-		syscall.GENERIC_READ|syscall.GENERIC_WRITE,
-		0,   // exclusive access
-		nil, // no security
-		syscall.OPEN_EXISTING,
-		syscall.FILE_ATTRIBUTE_NORMAL|syscall.FILE_FLAG_OVERLAPPED,
-		0)
-	if err != nil {
-		switch err {
-		case syscall.ERROR_ACCESS_DENIED:
-			return nil, &PortError{code: PortBusy}
-		case syscall.ERROR_FILE_NOT_FOUND:
-			return nil, &PortError{code: PortNotFound}
-		}
-		return nil, err
-	}
-	// Create the serial port
-	port := &windowsPort{
-		name:   portName,
-		handle: handle,
-		mode:   mode,
-		timeouts: &commTimeouts{
-			// Legacy initial timeouts configuration: 1 sec read timeout
-			ReadIntervalTimeout:         0xFFFFFFFF,
-			ReadTotalTimeoutMultiplier:  0xFFFFFFFF,
-			ReadTotalTimeoutConstant:    1000,
-			WriteTotalTimeoutMultiplier: 0,
-			WriteTotalTimeoutConstant:   0,
-		},
-	}
-
-	if err = port.reconfigurePort(); err != nil {
-		port.Close()
-		return nil, err
-	}
-	return port, nil
-}
-
-func nativeGetPortsList() ([]string, error) {
-	subKey, err := syscall.UTF16PtrFromString("HARDWARE\\DEVICEMAP\\SERIALCOMM\\")
-	if err != nil {
-		return nil, &PortError{code: ErrorEnumeratingPorts}
-	}
-
-	var h syscall.Handle
-	if syscall.RegOpenKeyEx(syscall.HKEY_LOCAL_MACHINE, subKey, 0, syscall.KEY_READ, &h) != nil {
-		return nil, &PortError{code: ErrorEnumeratingPorts}
-	}
-	defer syscall.RegCloseKey(h)
-
-	var valuesCount uint32
-	if syscall.RegQueryInfoKey(h, nil, nil, nil, nil, nil, nil, &valuesCount, nil, nil, nil, nil) != nil {
-		return nil, &PortError{code: ErrorEnumeratingPorts}
-	}
-
-	list := make([]string, valuesCount)
-	for i := range list {
-		var data [1024]uint16
-		dataSize := uint32(len(data))
-		var name [1024]uint16
-		nameSize := uint32(len(name))
-		if regEnumValue(h, uint32(i), &name[0], &nameSize, nil, nil, &data[0], &dataSize) != nil {
-			return nil, &PortError{code: ErrorEnumeratingPorts}
-		}
-		list[i] = syscall.UTF16ToString(data[:])
-	}
-	return list, nil
 }
 
 func createOverlappedStruct() (*syscall.Overlapped, error) {
