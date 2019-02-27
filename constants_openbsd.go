@@ -33,8 +33,8 @@ var baudrateMap = map[int]uint32{
 	57600:  unix.B57600,
 	115200: unix.B115200,
 	230400: unix.B230400,
-	//460800: unix.B460800,
-	//921600: unix.B921600,
+	// 460800: unix.B460800,
+	// 921600: unix.B921600,
 }
 
 var databitsMap = map[int]uint32{

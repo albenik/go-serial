@@ -12,22 +12,6 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func setTermSettingsBaudrate(speed int, settings *unix.Termios) error {
-	baudrate, ok := baudrateMap[speed]
-	if !ok {
-		return &PortError{code: InvalidSpeed}
-	}
-	// revert old baudrate
-	for _, rate := range baudrateMap {
-		settings.Cflag &^= rate
-	}
-	// set new baudrate
-	settings.Cflag |= baudrate
-	settings.Ispeed = toTermiosSpeedType(baudrate)
-	settings.Ospeed = toTermiosSpeedType(baudrate)
-	return nil
-}
-
 func setTermSettingsParity(parity Parity, settings *unix.Termios) error {
 	switch parity {
 	case NoParity:

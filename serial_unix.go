@@ -436,9 +436,7 @@ func (port *unixPort) GetModemStatusBits() (*ModemStatusBits, error) {
 	}, nil
 }
 
-// helpers
-
-func (port *unixPort) closeAndReturnError(code PortErrorCode, err error) error {
+func (port *unixPort) closeAndReturnError(code PortErrorCode, err error) *PortError {
 	return &PortError{code: code, causedBy: multierr.Combine(
 		err,
 		ioctl(port.handle, unix.TIOCNXCL, 0),
@@ -452,23 +450,6 @@ func (port *unixPort) checkValid() error {
 	}
 	if !port.opened {
 		return &PortError{code: PortClosed}
-	}
-	return nil
-}
-
-// native syscall wrapper functions
-
-func (port *unixPort) retrieveTermSettings() (*unix.Termios, error) {
-	settings := new(unix.Termios)
-	if err := ioctl(port.handle, ioctlTcgetattr, uintptr(unsafe.Pointer(settings))); err != nil {
-		return nil, newOSError(err)
-	}
-	return settings, nil
-}
-
-func (port *unixPort) applyTermSettings(settings *unix.Termios) error {
-	if err := ioctl(port.handle, ioctlTcsetattr, uintptr(unsafe.Pointer(settings))); err != nil {
-		return newOSError(err)
 	}
 	return nil
 }
