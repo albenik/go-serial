@@ -6,7 +6,7 @@
 
 package serial
 
-// sys regEnumValue(key syscall.Handle, index uint32, name *uint16, nameLen *uint32, reserved *uint32, class *uint16, value *uint16, valueLen *uint32) (regerrno error) = advapi32.RegEnumValueW
+//sys regEnumValue(key syscall.Handle, index uint32, name *uint16, nameLen *uint32, reserved *uint32, class *uint16, value *uint16, valueLen *uint32) (regerrno error) = advapi32.RegEnumValueW
 
 const (
 	ceBreak    uint32 = 0x0010
@@ -34,7 +34,7 @@ type comstat struct {
 	outque uint32
 }
 
-// sys clearCommError(handle syscall.Handle, lpErrors *uint32, lpStat *comstat) (err error) = ClearCommError
+//sys clearCommError(handle syscall.Handle, lpErrors *uint32, lpStat *comstat) (err error) = ClearCommError
 
 const (
 	dcbBinary                uint32 = 0x00000001
@@ -92,9 +92,9 @@ type dcb struct {
 	wReserved1 uint16
 }
 
-// sys getCommState(handle syscall.Handle, dcb *dcb) (err error) = GetCommState
+//sys getCommState(handle syscall.Handle, dcb *dcb) (err error) = GetCommState
 
-// sys setCommState(handle syscall.Handle, dcb *dcb) (err error) = SetCommState
+//sys setCommState(handle syscall.Handle, dcb *dcb) (err error) = SetCommState
 
 type commTimeouts struct {
 	ReadIntervalTimeout         uint32
@@ -104,7 +104,7 @@ type commTimeouts struct {
 	WriteTotalTimeoutConstant   uint32
 }
 
-// sys setCommTimeouts(handle syscall.Handle, timeouts *commTimeouts) (err error) = SetCommTimeouts
+//sys setCommTimeouts(handle syscall.Handle, timeouts *commTimeouts) (err error) = SetCommTimeouts
 
 const (
 	commFunctionSetXOFF  = 1
@@ -117,7 +117,7 @@ const (
 	commFunctionClrBreak = 9
 )
 
-// sys escapeCommFunction(handle syscall.Handle, function uint32) (res bool) = EscapeCommFunction
+//sys escapeCommFunction(handle syscall.Handle, function uint32) (res bool) = EscapeCommFunction
 
 const (
 	msCTSOn  = 0x0010
@@ -126,7 +126,7 @@ const (
 	msRLSDOn = 0x0080
 )
 
-// sys getCommModemStatus(handle syscall.Handle, bits *uint32) (res bool) = GetCommModemStatus
+//sys getCommModemStatus(handle syscall.Handle, bits *uint32) (res bool) = GetCommModemStatus
 
 const (
 	evBreak   uint32 = 0x0040 // A break was detected on input.
@@ -140,13 +140,13 @@ const (
 	evTxEmpty        = 0x0004 // The last character in the output buffer was sent.
 )
 
-// sys setCommMask(handle syscall.Handle, mask uint32) (err error) = SetCommMask
+//sys setCommMask(handle syscall.Handle, mask uint32) (err error) = SetCommMask
 
-// sys createEvent(eventAttributes *uint32, manualReset bool, initialState bool, name *uint16) (handle syscall.Handle, err error) = CreateEventW
+//sys createEvent(eventAttributes *uint32, manualReset bool, initialState bool, name *uint16) (handle syscall.Handle, err error) = CreateEventW
 
-// sys resetEvent(handle syscall.Handle) (err error) = ResetEvent
+//sys resetEvent(handle syscall.Handle) (err error) = ResetEvent
 
-// sys getOverlappedResult(handle syscall.Handle, overlapEvent *syscall.Overlapped, n *uint32, wait bool) (err error) = GetOverlappedResult
+//sys getOverlappedResult(handle syscall.Handle, overlapEvent *syscall.Overlapped, n *uint32, wait bool) (err error) = GetOverlappedResult
 
 const (
 	purgeRxAbort uint32 = 0x0002
@@ -155,4 +155,4 @@ const (
 	purgeTxClear        = 0x0004
 )
 
-// sys purgeComm(handle syscall.Handle, flags uint32) (err error) = PurgeComm
+//sys purgeComm(handle syscall.Handle, flags uint32) (err error) = PurgeComm
