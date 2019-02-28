@@ -51,17 +51,6 @@ func parseDeviceID(deviceID string, details *PortDetails) {
 	// Other unidentified device type
 }
 
-// setupapi based
-// --------------
-
-//sys setupDiClassGuidsFromNameInternal(class string, guid *guid, guidSize uint32, requiredSize *uint32) (err error) = setupapi.SetupDiClassGuidsFromNameW
-//sys setupDiGetClassDevs(guid *guid, enumerator *string, hwndParent uintptr, flags uint32) (set devicesSet, err error) = setupapi.SetupDiGetClassDevsW
-//sys setupDiDestroyDeviceInfoList(set devicesSet) (err error) = setupapi.SetupDiDestroyDeviceInfoList
-//sys setupDiEnumDeviceInfo(set devicesSet, index uint32, info *devInfoData) (err error) = setupapi.SetupDiEnumDeviceInfo
-//sys setupDiGetDeviceInstanceId(set devicesSet, devInfo *devInfoData, devInstanceId unsafe.Pointer, devInstanceIdSize uint32, requiredSize *uint32) (err error) = setupapi.SetupDiGetDeviceInstanceIdW
-//sys setupDiOpenDevRegKey(set devicesSet, devInfo *devInfoData, scope dicsScope, hwProfile uint32, keyType uint32, samDesired regsam) (hkey syscall.Handle, err error) = setupapi.SetupDiOpenDevRegKey
-//sys setupDiGetDeviceRegistryProperty(set devicesSet, devInfo *devInfoData, property deviceProperty, propertyType *uint32, outValue *byte, outSize *uint32, reqSize *uint32) (res bool) = setupapi.SetupDiGetDeviceRegistryPropertyW
-
 // Device registry property codes
 // (Codes marked as read-only (R) may only be used for
 // SetupDiGetDeviceRegistryProperty)
@@ -184,18 +173,18 @@ const (
 	digcfDeviceInterface = 0x00000010
 )
 
-type devicesSet syscall.Handle
+type hDevInfo syscall.Handle
 
-func (g *guid) getDevicesSet() (devicesSet, error) {
+func (g *guid) getDevicesSet() (hDevInfo, error) {
 	return setupDiGetClassDevs(g, nil, 0, digcfPresent)
 }
 
-func (set devicesSet) destroy() {
+func (set hDevInfo) destroy() {
 	setupDiDestroyDeviceInfoList(set)
 }
 
 // https://msdn.microsoft.com/en-us/library/windows/hardware/ff552344(v=vs.85).aspx
-type devInfoData struct {
+type pspDevInfoData struct {
 	size     uint32
 	guid     guid
 	devInst  uint32
@@ -203,11 +192,11 @@ type devInfoData struct {
 }
 
 type deviceInfo struct {
-	set  devicesSet
-	data devInfoData
+	set  hDevInfo
+	data pspDevInfoData
 }
 
-func (set devicesSet) getDeviceInfo(index int) (*deviceInfo, error) {
+func (set hDevInfo) getDeviceInfo(index int) (*deviceInfo, error) {
 	result := &deviceInfo{set: set}
 
 	result.data.size = uint32(unsafe.Sizeof(result.data))
@@ -293,9 +282,9 @@ func retrievePortDetailsFromDevInfo(device *deviceInfo, details *PortDetails) er
 
 	var friendlyName [1024]uint16
 	friendlyNameP := (*byte)(unsafe.Pointer(&friendlyName[0]))
-	friendlyNameSize := uint32(len(friendlyName) * 2)
-	if setupDiGetDeviceRegistryProperty(device.set, &device.data, spdrpDeviceDesc /* spdrpFriendlyName */, nil, friendlyNameP, &friendlyNameSize, nil) {
-		//details.Product = syscall.UTF16ToString(friendlyName[:])
+	friendlyNameSize := uint32(unsafe.Sizeof(friendlyName) - 1)
+	if setupDiGetDeviceRegistryProperty(device.set, &device.data, spdrpDeviceDesc /* spdrpFriendlyName */, nil, friendlyNameP, friendlyNameSize, nil) {
+		// details.Product = syscall.UTF16ToString(friendlyName[:])
 	}
 
 	return nil
