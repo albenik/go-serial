@@ -17,8 +17,8 @@ type PortDetails struct {
 	PID          string
 	SerialNumber string
 
-	// Manufacturer string
-	// Product      string
+	Manufacturer string
+	Product      string
 }
 
 // GetDetailedPortsList retrieve ports details like USB VID/PID.

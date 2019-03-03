@@ -131,8 +131,8 @@ func setupDiOpenDevRegKey(set hDevInfo, devInfo *pspDevInfoData, scope dicsScope
 	return
 }
 
-func setupDiGetDeviceRegistryProperty(set hDevInfo, devInfo *pspDevInfoData, property deviceProperty, propertyType *uint32, outValue *byte, outSize *uint32, reqSize *uint32) (res bool) {
-	r0, _, _ := syscall.Syscall9(procSetupDiGetDeviceRegistryPropertyW.Addr(), 7, uintptr(set), uintptr(unsafe.Pointer(devInfo)), uintptr(property), uintptr(unsafe.Pointer(propertyType)), uintptr(unsafe.Pointer(outValue)), uintptr(unsafe.Pointer(outSize)), uintptr(unsafe.Pointer(reqSize)), 0, 0)
+func setupDiGetDeviceRegistryProperty(set hDevInfo, devInfo *pspDevInfoData, property deviceProperty, propertyType *uint32, outValue *byte, outSize uint32, reqSize *uint32) (res bool) {
+	r0, _, _ := syscall.Syscall9(procSetupDiGetDeviceRegistryPropertyW.Addr(), 7, uintptr(set), uintptr(unsafe.Pointer(devInfo)), uintptr(property), uintptr(unsafe.Pointer(propertyType)), uintptr(unsafe.Pointer(outValue)), uintptr(outSize), uintptr(unsafe.Pointer(reqSize)), 0, 0)
 	res = r0 != 0
 	return
 }
