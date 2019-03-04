@@ -283,8 +283,13 @@ func retrievePortDetailsFromDevInfo(device *deviceInfo, details *PortDetails) er
 	var friendlyName [1024]uint16
 	friendlyNameP := (*byte)(unsafe.Pointer(&friendlyName[0]))
 	friendlyNameSize := uint32(unsafe.Sizeof(friendlyName) - 1)
+
 	if setupDiGetDeviceRegistryProperty(device.set, &device.data, spdrpDeviceDesc /* spdrpFriendlyName */, nil, friendlyNameP, friendlyNameSize, nil) {
-		// details.Product = syscall.UTF16ToString(friendlyName[:])
+		details.Product = syscall.UTF16ToString(friendlyName[:])
+	}
+
+	if setupDiGetDeviceRegistryProperty(device.set, &device.data, spdrpMFG, nil, friendlyNameP, friendlyNameSize, nil) {
+		details.Manufacturer = syscall.UTF16ToString(friendlyName[:])
 	}
 
 	return nil
