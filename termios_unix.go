@@ -89,6 +89,7 @@ func setTermSettingRawMode(settings *unix.Termios) {
 	// Set local mode
 	settings.Cflag |= unix.CREAD
 	settings.Cflag |= unix.CLOCAL
+	settings.Cflag &^= unix.HUPCL
 
 	// Set raw mode
 	settings.Lflag &^= unix.ICANON
