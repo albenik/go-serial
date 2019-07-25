@@ -1,4 +1,4 @@
-module github.com/albenik/go-serial
+module github.com/bmuessig/go-serial
 
 require (
 	github.com/creack/goselect v0.1.0
