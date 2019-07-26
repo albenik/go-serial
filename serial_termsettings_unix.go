@@ -14,16 +14,16 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func (port *unixPort) retrieveTermSettings() (*unix.Termios, error) {
+func (p *port) retrieveTermSettings() (*unix.Termios, error) {
 	settings := new(unix.Termios)
-	if err := ioctl(port.handle, ioctlTcgetattr, uintptr(unsafe.Pointer(settings))); err != nil {
+	if err := ioctl(p.handle, ioctlTcgetattr, uintptr(unsafe.Pointer(settings))); err != nil {
 		return nil, newOSError(err)
 	}
 	return settings, nil
 }
 
-func (port *unixPort) applyTermSettings(settings *unix.Termios) error {
-	if err := ioctl(port.handle, ioctlTcsetattr, uintptr(unsafe.Pointer(settings))); err != nil {
+func (p *port) applyTermSettings(settings *unix.Termios) error {
+	if err := ioctl(p.handle, ioctlTcsetattr, uintptr(unsafe.Pointer(settings))); err != nil {
 		return newOSError(err)
 	}
 	return nil

@@ -16,13 +16,14 @@ import (
 
 func ExamplePort_GetModemStatusBits() {
 	// Open the first serial port detected at 9600bps N81
-	mode := &serial.Mode{
-		BaudRate: 9600,
-		Parity:   serial.NoParity,
-		DataBits: 8,
-		StopBits: serial.OneStopBit,
-	}
-	port, err := serial.Open("/dev/ttyACM1", mode)
+	port, err := serial.Open("/dev/ttyACM1",
+		serial.WithBaudrate(9600),
+		serial.WithDataBits(8),
+		serial.WithParity(serial.NoParity),
+		serial.WithStopBits(serial.OneStopBit),
+		serial.WithReadTimeout(1000),
+		serial.WithWrieTimeout(1000),
+	)
 	if err != nil {
 		log.Fatal(err)
 	}

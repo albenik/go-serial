@@ -6,6 +6,10 @@
 
 package serial
 
+import (
+	"syscall"
+)
+
 //sys regEnumValue(key syscall.Handle, index uint32, name *uint16, nameLen *uint32, reserved *uint32, class *uint16, value *uint16, valueLen *uint32) (regerrno error) = advapi32.RegEnumValueW
 
 const (
@@ -156,3 +160,11 @@ const (
 )
 
 //sys purgeComm(handle syscall.Handle, flags uint32) (err error) = PurgeComm
+
+func createOverlappedStruct() (*syscall.Overlapped, error) {
+	if h, err := createEvent(nil, true, false, nil); err == nil {
+		return &syscall.Overlapped{HEvent: h}, nil
+	} else {
+		return nil, err
+	}
+}

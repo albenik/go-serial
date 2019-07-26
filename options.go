@@ -1,0 +1,39 @@
+package serial
+
+type Option func(p *Port)
+
+func WithBaudrate(o int) Option {
+	return func(p *Port) {
+		p.baudRate = o
+	}
+}
+
+func WithDataBits(o int) Option {
+	return func(p *Port) {
+		p.dataBits = o
+	}
+}
+
+func WithParity(o Parity) Option {
+	return func(p *Port) {
+		p.parity = o
+	}
+}
+
+func WithStopBits(o StopBits) Option {
+	return func(p *Port) {
+		p.stopBits = o
+	}
+}
+
+func WithReadTimeout(o int) Option {
+	return func(p *Port) {
+		p.setReadTimeoutValues(o)
+	}
+}
+
+func WithWrieTimeout(o int) Option {
+	return func(p *Port) {
+		p.setWriteTimeoutValues(o)
+	}
+}
