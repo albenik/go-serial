@@ -37,3 +37,9 @@ func WithWriteTimeout(o int) Option {
 		p.setWriteTimeoutValues(o)
 	}
 }
+
+func WithHUPCL(o bool) Option {
+	return func(p *Port) {
+		p.hupcl = o
+	}
+}

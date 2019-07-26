@@ -14,30 +14,30 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func (p *port) retrieveTermSettings() (*unix.Termios, error) {
-	settings := new(unix.Termios)
+func (p *port) retrieveTermSettings() (*settings, error) {
+	s := &settings{termios: new(unix.Termios)}
 
-	if err := ioctl(p.handle, unix.TCGETS, uintptr(unsafe.Pointer(settings))); err != nil {
+	if err := ioctl(p.handle, unix.TCGETS, uintptr(unsafe.Pointer(s.termios))); err != nil {
 		return nil, newOSError(err)
 	}
 
-	if settings.Cflag&unix.BOTHER == unix.BOTHER {
-		if err := ioctl(p.handle, unix.TCGETS2, uintptr(unsafe.Pointer(settings))); err != nil {
+	if s.termios.Cflag&unix.BOTHER == unix.BOTHER {
+		if err := ioctl(p.handle, unix.TCGETS2, uintptr(unsafe.Pointer(s.termios))); err != nil {
 			return nil, newOSError(err)
 		}
 	}
-	
-	return settings, nil
+
+	return s, nil
 }
 
-func (p *port) applyTermSettings(settings *unix.Termios) error {
+func (p *port) applyTermSettings(s *settings) error {
 	req := uint64(unix.TCSETS)
 
-	if settings.Cflag&unix.BOTHER == unix.BOTHER {
+	if s.termios.Cflag&unix.BOTHER == unix.BOTHER {
 		req = unix.TCSETS2
 	}
 
-	if err := ioctl(p.handle, req, uintptr(unsafe.Pointer(settings))); err != nil {
+	if err := ioctl(p.handle, req, uintptr(unsafe.Pointer(s.termios))); err != nil {
 		return newOSError(err)
 	}
 	return nil

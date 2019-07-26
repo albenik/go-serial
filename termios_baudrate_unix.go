@@ -8,22 +8,18 @@
 
 package serial
 
-import (
-	"golang.org/x/sys/unix"
-)
-
-func setTermSettingsBaudrate(speed int, settings *unix.Termios) error {
+func (s *settings) setBaudrate(speed int) error {
 	baudrate, ok := baudrateMap[speed]
 	if !ok {
 		return &PortError{code: InvalidSpeed}
 	}
 	// revert old baudrate
 	for _, rate := range baudrateMap {
-		settings.Cflag &^= rate
+		s.termios.Cflag &^= rate
 	}
 	// set new baudrate
-	settings.Cflag |= baudrate
-	settings.Ispeed = toTermiosSpeedType(baudrate)
-	settings.Ospeed = toTermiosSpeedType(baudrate)
+	s.termios.Cflag |= baudrate
+	s.termios.Ispeed = toTermiosSpeedType(baudrate)
+	s.termios.Ospeed = toTermiosSpeedType(baudrate)
 	return nil
 }

@@ -12,21 +12,21 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func setTermSettingsBaudrate(speed int, settings *unix.Termios) error {
-	if rate, ok := baudrateMap[speed]; ok {
+func (s *settings) setTermSettingsBaudrate(r int) error {
+	if rate, ok := baudrateMap[r]; ok {
 		// clear all standard baudrate bits
 		for _, b := range baudrateMap {
-			settings.Cflag &^= b
+			s.termios.Cflag &^= b
 		}
 		// set selected baudrate bit
-		settings.Cflag |= rate
-		settings.Ispeed = rate
-		settings.Ospeed = rate
+		s.termios.Cflag |= rate
+		s.termios.Ispeed = rate
+		s.termios.Ospeed = rate
 	} else {
-		settings.Cflag &^= unix.CBAUD
-		settings.Cflag |= unix.BOTHER
-		settings.Ispeed = uint32(speed)
-		settings.Ospeed = uint32(speed)
+		s.termios.Cflag &^= unix.CBAUD
+		s.termios.Cflag |= unix.BOTHER
+		s.termios.Ispeed = uint32(r)
+		s.termios.Ospeed = uint32(r)
 	}
 	return nil
 }

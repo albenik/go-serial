@@ -12,114 +12,122 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func setTermSettingsParity(parity Parity, settings *unix.Termios) error {
+type settings struct {
+	termios *unix.Termios
+}
+
+func (s *settings) setParity(parity Parity) error {
 	switch parity {
 	case NoParity:
-		settings.Cflag &^= unix.PARENB
-		settings.Cflag &^= unix.PARODD
-		settings.Cflag &^= tcCMSPAR
-		settings.Iflag &^= unix.INPCK
+		s.termios.Cflag &^= unix.PARENB
+		s.termios.Cflag &^= unix.PARODD
+		s.termios.Cflag &^= tcCMSPAR
+		s.termios.Iflag &^= unix.INPCK
 	case OddParity:
-		settings.Cflag |= unix.PARENB
-		settings.Cflag |= unix.PARODD
-		settings.Cflag &^= tcCMSPAR
-		settings.Iflag |= unix.INPCK
+		s.termios.Cflag |= unix.PARENB
+		s.termios.Cflag |= unix.PARODD
+		s.termios.Cflag &^= tcCMSPAR
+		s.termios.Iflag |= unix.INPCK
 	case EvenParity:
-		settings.Cflag |= unix.PARENB
-		settings.Cflag &^= unix.PARODD
-		settings.Cflag &^= tcCMSPAR
-		settings.Iflag |= unix.INPCK
+		s.termios.Cflag |= unix.PARENB
+		s.termios.Cflag &^= unix.PARODD
+		s.termios.Cflag &^= tcCMSPAR
+		s.termios.Iflag |= unix.INPCK
 	case MarkParity:
 		if tcCMSPAR == 0 {
 			return &PortError{code: InvalidParity}
 		}
-		settings.Cflag |= unix.PARENB
-		settings.Cflag |= unix.PARODD
-		settings.Cflag |= tcCMSPAR
-		settings.Iflag |= unix.INPCK
+		s.termios.Cflag |= unix.PARENB
+		s.termios.Cflag |= unix.PARODD
+		s.termios.Cflag |= tcCMSPAR
+		s.termios.Iflag |= unix.INPCK
 	case SpaceParity:
 		if tcCMSPAR == 0 {
 			return &PortError{code: InvalidParity}
 		}
-		settings.Cflag |= unix.PARENB
-		settings.Cflag &^= unix.PARODD
-		settings.Cflag |= tcCMSPAR
-		settings.Iflag |= unix.INPCK
+		s.termios.Cflag |= unix.PARENB
+		s.termios.Cflag &^= unix.PARODD
+		s.termios.Cflag |= tcCMSPAR
+		s.termios.Iflag |= unix.INPCK
 	default:
 		return &PortError{code: InvalidParity}
 	}
 	return nil
 }
 
-func setTermSettingsDataBits(bits int, settings *unix.Termios) error {
+func (s *settings) setDataBits(bits int) error {
 	databits, ok := databitsMap[bits]
 	if !ok {
 		return &PortError{code: InvalidDataBits}
 	}
 	// Remove previous databits setting
-	settings.Cflag &^= unix.CSIZE
+	s.termios.Cflag &^= unix.CSIZE
 	// Set requested databits
-	settings.Cflag |= databits
+	s.termios.Cflag |= databits
 	return nil
 }
 
-func setTermSettingsStopBits(bits StopBits, settings *unix.Termios) error {
+func (s *settings) setStopBits(bits StopBits) error {
 	switch bits {
 	case OneStopBit:
-		settings.Cflag &^= unix.CSTOPB
+		s.termios.Cflag &^= unix.CSTOPB
 	case OnePointFiveStopBits:
 		return &PortError{code: InvalidStopBits}
 	case TwoStopBits:
-		settings.Cflag |= unix.CSTOPB
+		s.termios.Cflag |= unix.CSTOPB
 	default:
 		return &PortError{code: InvalidStopBits}
 	}
 	return nil
 }
 
-func setTermSettingsCtsRts(settings *unix.Termios, enable bool) {
+func (s *settings) setCtsRts(enable bool) {
 	if enable {
-		settings.Cflag |= tcCRTSCTS
+		s.termios.Cflag |= tcCRTSCTS
 	} else {
-		settings.Cflag &^= tcCRTSCTS
+		s.termios.Cflag &^= tcCRTSCTS
 	}
 }
 
-func setTermSettingRawMode(settings *unix.Termios) {
+func (s *settings) setRawMode(hupcl bool) {
 	// Set local mode
-	settings.Cflag |= unix.CREAD
-	settings.Cflag |= unix.CLOCAL
-	settings.Cflag &^= unix.HUPCL
+	s.termios.Cflag |= unix.CREAD
+	s.termios.Cflag |= unix.CLOCAL
+	if hupcl {
+		s.termios.Cflag |= unix.HUPCL
+	} else {
+		s.termios.Cflag &^= unix.HUPCL
+	}
 
 	// Set raw mode
-	settings.Lflag &^= unix.ICANON
-	settings.Lflag &^= unix.ECHO
-	settings.Lflag &^= unix.ECHOE
-	settings.Lflag &^= unix.ECHOK
-	settings.Lflag &^= unix.ECHONL
-	settings.Lflag &^= unix.ECHOCTL
-	settings.Lflag &^= unix.ECHOPRT
-	settings.Lflag &^= unix.ECHOKE
-	settings.Lflag &^= unix.ISIG
-	settings.Lflag &^= unix.IEXTEN
+	s.termios.Lflag &^= unix.ICANON
+	s.termios.Lflag &^= unix.ECHO
+	s.termios.Lflag &^= unix.ECHOE
+	s.termios.Lflag &^= unix.ECHOK
+	s.termios.Lflag &^= unix.ECHONL
+	s.termios.Lflag &^= unix.ECHOCTL
+	s.termios.Lflag &^= unix.ECHOPRT
+	s.termios.Lflag &^= unix.ECHOKE
+	s.termios.Lflag &^= unix.ISIG
+	s.termios.Lflag &^= unix.IEXTEN
 
-	settings.Iflag &^= unix.IXON
-	settings.Iflag &^= unix.IXOFF
-	settings.Iflag &^= unix.IXANY
-	settings.Iflag &^= unix.INPCK
-	settings.Iflag &^= unix.IGNPAR
-	settings.Iflag &^= unix.PARMRK
-	settings.Iflag &^= unix.ISTRIP
-	settings.Iflag &^= unix.IGNBRK
-	settings.Iflag &^= unix.BRKINT
-	settings.Iflag &^= unix.INLCR
-	settings.Iflag &^= unix.IGNCR
-	settings.Iflag &^= unix.ICRNL
-	settings.Iflag &^= tcIUCLC
+	s.termios.Iflag &^= unix.IXON
+	s.termios.Iflag &^= unix.IXOFF
+	s.termios.Iflag &^= unix.IXANY
+	s.termios.Iflag &^= unix.INPCK
+	s.termios.Iflag &^= unix.IGNPAR
+	s.termios.Iflag &^= unix.PARMRK
+	s.termios.Iflag &^= unix.ISTRIP
+	s.termios.Iflag &^= unix.IGNBRK
+	s.termios.Iflag &^= unix.BRKINT
+	s.termios.Iflag &^= unix.INLCR
+	s.termios.Iflag &^= unix.IGNCR
+	s.termios.Iflag &^= unix.ICRNL
+	s.termios.Iflag &^= tcIUCLC
 
-	settings.Oflag &^= unix.OPOST
+	s.termios.Oflag &^= unix.OPOST
 
 	// Block reads until at least one char is available (no timeout)
-	settings.Cc[unix.VMIN] = 1
-	settings.Cc[unix.VTIME] = 0
+	s.termios.Cc[unix.VMIN] = 1
+	s.termios.Cc[unix.VTIME] = 0
 }

@@ -69,21 +69,6 @@ func Open(name string, opts ...Option) (*Port, error) {
 		return nil, port.closeAndReturnError(InvalidSerialPort, err)
 	}
 
-	settings, err := port.retrieveTermSettings()
-	if err != nil {
-		return nil, port.closeAndReturnError(InvalidSerialPort, err)
-	}
-
-	// Set raw mode
-	setTermSettingRawMode(settings)
-
-	// Explicitly disable RTS/CTS flow control
-	setTermSettingsCtsRts(settings, false)
-
-	if err = port.applyTermSettings(settings); err != nil {
-		return nil, port.closeAndReturnError(InvalidSerialPort, err)
-	}
-
 	if err = unix.SetNonblock(h, false); err != nil {
 		return nil, port.closeAndReturnError(OsError, err)
 	}
@@ -307,7 +292,7 @@ func (p *Port) SetReadTimeoutEx(t, i uint32) error {
 		return err
 	}
 
-	settings, err := p.retrieveTermSettings()
+	s, err := p.retrieveTermSettings()
 	if err != nil {
 		return err // port.retrieveTermSettings() already returned PortError
 	}
@@ -317,14 +302,14 @@ func (p *Port) SetReadTimeoutEx(t, i uint32) error {
 		return &PortError{code: InvalidTimeoutValue}
 	}
 	if vtime > 0 {
-		settings.Cc[unix.VMIN] = 1
-		settings.Cc[unix.VTIME] = uint8(t)
+		s.termios.Cc[unix.VMIN] = 1
+		s.termios.Cc[unix.VTIME] = uint8(t)
 	} else {
-		settings.Cc[unix.VMIN] = 0
-		settings.Cc[unix.VTIME] = 0
+		s.termios.Cc[unix.VMIN] = 0
+		s.termios.Cc[unix.VTIME] = 0
 	}
 
-	if err = p.applyTermSettings(settings); err != nil {
+	if err = p.applyTermSettings(s); err != nil {
 		return err // port.applyTermSettings() already returned PortError
 	}
 
@@ -420,23 +405,28 @@ func (p *Port) reconfigure() error {
 		return err
 	}
 
-	settings, err := p.retrieveTermSettings()
+	s, err := p.retrieveTermSettings()
 	if err != nil {
 		return err // port.retrieveTermSettings() already returned PortError
 	}
-	if err := setTermSettingsBaudrate(p.baudRate, settings); err != nil {
+
+	if err := s.setBaudrate(p.baudRate); err != nil {
 		return err
 	}
-	if err := setTermSettingsParity(p.parity, settings); err != nil {
+	if err := s.setParity(p.parity); err != nil {
 		return err
 	}
-	if err := setTermSettingsDataBits(p.dataBits, settings); err != nil {
+	if err := s.setDataBits(p.dataBits); err != nil {
 		return err
 	}
-	if err := setTermSettingsStopBits(p.stopBits, settings); err != nil {
+	if err := s.setStopBits(p.stopBits); err != nil {
 		return err
 	}
-	return p.applyTermSettings(settings) // already returned PortError
+	s.setRawMode(p.hupcl)
+	// Explicitly disable RTS/CTS flow control
+	s.setCtsRts(false)
+
+	return p.applyTermSettings(s) // already returned PortError
 }
 
 func GetPortsList() ([]string, error) {
