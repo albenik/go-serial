@@ -298,8 +298,7 @@ func (p *Port) SetReadTimeout(t int) error {
 		return err
 	}
 
-	p.firstByteTimeout = false
-	p.readTimeout = t
+	p.setReadTimeoutValues(t)
 	return nil // timeout is done via select
 }
 
@@ -353,7 +352,7 @@ func (p *Port) SetWriteTimeout(t int) error {
 		return err
 	}
 
-	p.writeTimeout = t
+	p.setWriteTimeoutValues(t)
 	return nil // timeout is done via select
 }
 
@@ -390,6 +389,15 @@ func (p *Port) checkValid() error {
 		return &PortError{code: PortClosed}
 	}
 	return nil
+}
+
+func (p *Port) setReadTimeoutValues(t int) {
+	p.firstByteTimeout = false
+	p.readTimeout = t
+}
+
+func (p *Port) setWriteTimeoutValues(t int) {
+	p.writeTimeout = t
 }
 
 func (p *Port) retrieveModemBitsStatus() (int, error) {

@@ -22,7 +22,7 @@ func ExamplePort_GetModemStatusBits() {
 		serial.WithParity(serial.NoParity),
 		serial.WithStopBits(serial.OneStopBit),
 		serial.WithReadTimeout(1000),
-		serial.WithWrieTimeout(1000),
+		serial.WithWriteTimeout(1000),
 	)
 	if err != nil {
 		log.Fatal(err)

@@ -24,7 +24,7 @@ func ExamplePort_Reconfigure() {
 		serial.WithParity(serial.NoParity),
 		serial.WithStopBits(serial.OneStopBit),
 		serial.WithReadTimeout(1000),
-		serial.WithWrieTimeout(1000),
+		serial.WithWriteTimeout(1000),
 	); err != nil {
 		log.Fatal(err)
 	}

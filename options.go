@@ -32,7 +32,7 @@ func WithReadTimeout(o int) Option {
 	}
 }
 
-func WithWrieTimeout(o int) Option {
+func WithWriteTimeout(o int) Option {
 	return func(p *Port) {
 		p.setWriteTimeoutValues(o)
 	}
