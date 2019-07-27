@@ -5,9 +5,9 @@
 //
 
 /*
-Package serial is a cross-platform serial library for the go language.
+Package go-serial is a cross-platform serial library for the go language.
 
-    import github.com/albenik/go-serial
+	import github.com/albenik/go-serial/v2
 
 It is possible to get the list of available serial ports with the
 GetPortsList function:
@@ -25,30 +25,29 @@ GetPortsList function:
 
 The serial port can be opened with the Open function:
 
-	mode := &serial.Mode{
-		BaudRate: 115200,
-	}
-	port, err := serial.Open("/dev/ttyUSB0", mode)
+	port, err := serial.Open("/dev/ttyUSB0", serial.WithBaudrate(115200))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-The Open function needs a "mode" parameter that specifies the configuration
+The Open function can accept options that specifies the configuration
 options for the serial port. If not specified the default options are 9600_N81,
 in the example above only the speed is changed so the port is opened using 115200_N81.
 The following snippets shows how to declare a configuration for 57600_E71:
 
-	mode := &serial.Mode{
-		BaudRate: 57600,
-		Parity: serial.EvenParity,
-		DataBits: 7,
-		StopBits: serial.OneStopBit,
-	}
+	serial.Open("/dev/ttyUSB0",
+		serial.WithBaudrate(57600),
+		serial.WithParity(serial.EvenParity),
+		serial.WithDataBits(7),
+		serial.WithStopBits(serial.OneStopBit),
+	)
 
-The configuration can be changed at any time with the SetMode function:
+The configuration can be changed at any time with the Reconfigure() function:
 
-	err := port.SetMode(mode)
-	if err != nil {
+	if err := port.Reconfigure(
+		serial.WithBaudrate(57600),
+		serial.WithParity(serial.EvenParity),
+	); err != nil {
 		log.Fatal(err)
 	}
 
