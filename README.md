@@ -4,13 +4,19 @@
 
 **Package updated to v2 version**
 
-A cross-platform serial library for go-lang based on [github.com/bugst/go-serial](https://github.com/bugst/go-serial) with own import path and some modifications (possible incompatible with original library).
+A cross-platform serial library for Go.
 
-Most ideas taken from [github.com/bugst/go-serial](https://github.com/bugst/go-serial) and [github.com/pyserial/pyserial](https://github.com/pyserial/pyserial).
+Forked from [github.com/bugst/go-serial](https://github.com/bugst/go-serial) and now developing independently.
 
-Sometime I do backports from [github.com/bugst/go-serial](https://github.com/bugst/go-serial).
+Many ideas were took from [github.com/bugst/go-serial](https://github.com/bugst/go-serial) and [github.com/pyserial/pyserial](https://github.com/pyserial/pyserial).
 
 Any PR-s are welcome.
+
+## INSTALL
+
+```
+go get -u github.com/abenik/go-serial/v2
+```
 
 ## Documentation and examples
 
