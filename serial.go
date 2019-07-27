@@ -54,7 +54,7 @@ type Port struct {
 	dataBits int      // Size of the character (must be 5, 6, 7 or 8)
 	parity   Parity   // Parity (see Parity type for more info)
 	stopBits StopBits // Stop bits (see StopBits type for more info)
-	hupcl    bool     // Lower DTR line on close (hang down)
+	hupcl    bool     // Lower DTR line on close (hang up)
 }
 
 func newWithDefaults(n string, p *port) *Port {

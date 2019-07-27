@@ -3,13 +3,14 @@ language: go
 os:
   - linux
   - osx
+  - windows
 
 go:
   - 1.10.x
   - 1.11.x
   - 1.12.x
 
-dist: xenial
+dist: bionic
 
 go_import_path: github.com/albenik/go-serial
 

@@ -220,14 +220,18 @@ func (p *Port) SetDTR(dtr bool) error {
 
 	// The following seems a more reliable way to do it
 
+	p.hupcl = dtr
+
 	params := &dcb{}
 	if err := getCommState(p.handle, params); err != nil {
 		return &PortError{causedBy: err}
 	}
+
 	params.Flags &= dcbDTRControlDisableMask
 	if dtr {
 		params.Flags |= dcbDTRControlEnable
 	}
+
 	if err := setCommState(p.handle, params); err != nil {
 		return &PortError{causedBy: err}
 	}
@@ -361,7 +365,9 @@ func (p *Port) reconfigure() error {
 	params.Flags &= dcbRTSControlDisableMask
 	params.Flags |= dcbRTSControlEnable
 	params.Flags &= dcbDTRControlDisableMask
-	params.Flags |= dcbDTRControlEnable
+	if p.hupcl {
+		params.Flags |= dcbDTRControlEnable
+	}
 	params.Flags &^= dcbOutXCTSFlow
 	params.Flags &^= dcbOutXDSRFlow
 	params.Flags &^= dcbDSRSensitivity

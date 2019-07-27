@@ -12,7 +12,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func (s *settings) setTermSettingsBaudrate(r int) error {
+func (s *settings) setBaudrate(r int) error {
 	if rate, ok := baudrateMap[r]; ok {
 		// clear all standard baudrate bits
 		for _, b := range baudrateMap {
