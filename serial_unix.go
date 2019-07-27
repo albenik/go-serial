@@ -11,7 +11,6 @@ package serial
 
 import (
 	"io/ioutil"
-	"os"
 	"regexp"
 	"strings"
 	"syscall"
@@ -21,14 +20,13 @@ import (
 	"go.uber.org/multierr"
 	"golang.org/x/sys/unix"
 
-	"github.com/albenik/go-serial/unixutils"
+	"github.com/albenik/go-serial/v2/unixutils"
 )
 
 var zeroByte = []byte{0}
 
 type port struct {
 	handle int
-	opened bool
 
 	firstByteTimeout bool
 	readTimeout      int
@@ -55,36 +53,38 @@ func Open(name string, opts ...Option) (*Port, error) {
 		return nil, newOSError(multierr.Append(err, unix.Close(h)))
 	}
 
-	port := newWithDefaults(name, &port{
-		handle: h,
-		opened: true,
-
+	p := newWithDefaults(name, &port{
+		handle:           h,
 		firstByteTimeout: true,
 		readTimeout:      0,
 		writeTimeout:     0,
 	})
 
 	// Setup serial port
-	if err := port.Reconfigure(opts...); err != nil {
-		return nil, port.closeAndReturnError(InvalidSerialPort, err)
+	if err := p.Reconfigure(opts...); err != nil {
+		return nil, p.closeAndReturnError(InvalidSerialPort, err)
 	}
 
 	if err = unix.SetNonblock(h, false); err != nil {
-		return nil, port.closeAndReturnError(OsError, err)
+		return nil, p.closeAndReturnError(OsError, err)
 	}
 
 	fds := []int{0, 0}
 	if err := syscall.Pipe(fds); err != nil {
-		port.Close()
-		return nil, port.closeAndReturnError(OsError, err)
+		p.Close()
+		return nil, p.closeAndReturnError(OsError, err)
 	}
-	port.closePipeR = fds[0]
-	port.closePipeW = fds[1]
+	p.internal.closePipeR = fds[0]
+	p.internal.closePipeW = fds[1]
 
-	return port, nil
+	return p, nil
 }
 
 func (p *Port) Reconfigure(opts ...Option) error {
+	if err := p.checkValid(); err != nil {
+		return err
+	}
+
 	for _, o := range opts {
 		o(p)
 	}
@@ -100,13 +100,13 @@ func (p *Port) Close() error {
 	p.opened = false
 
 	// Send close signal to all pending reads (if any) and close signaling pipe
-	_, err := unix.Write(p.closePipeW, zeroByte)
+	_, err := unix.Write(p.internal.closePipeW, zeroByte)
 	err = multierr.Combine(
 		err,
-		unix.Close(p.closePipeW),
-		unix.Close(p.closePipeR),
-		ioctl(p.handle, unix.TIOCNXCL, 0),
-		unix.Close(p.handle),
+		unix.Close(p.internal.closePipeW),
+		unix.Close(p.internal.closePipeR),
+		ioctl(p.internal.handle, unix.TIOCNXCL, 0),
+		unix.Close(p.internal.handle),
 	)
 
 	if err != nil {
@@ -115,20 +115,13 @@ func (p *Port) Close() error {
 	return nil
 }
 
-func (p *Port) String() string {
-	if p == nil {
-		return "INVALID_NULL_PORT"
-	}
-	return p.name
-}
-
 func (p *Port) ReadyToRead() (uint32, error) {
 	if err := p.checkValid(); err != nil {
 		return 0, err
 	}
 
 	var n uint32
-	if err := ioctl(p.handle, FIONREAD, uintptr(unsafe.Pointer(&n))); err != nil {
+	if err := ioctl(p.internal.handle, FIONREAD, uintptr(unsafe.Pointer(&n))); err != nil {
 		return 0, newOSError(err)
 	}
 	return n, nil
@@ -140,11 +133,11 @@ func (p *Port) Read(b []byte) (int, error) {
 	}
 
 	size, read := len(b), 0
-	fds := unixutils.NewFDSet(p.handle, p.closePipeR)
+	fds := unixutils.NewFDSet(p.internal.handle, p.internal.closePipeR)
 	buf := make([]byte, size)
 
 	now := time.Now()
-	deadline := now.Add(time.Duration(p.readTimeout) * time.Millisecond)
+	deadline := now.Add(time.Duration(p.internal.readTimeout) * time.Millisecond)
 
 	for read < size {
 		res, err := unixutils.Select(fds, nil, fds, deadline.Sub(now))
@@ -152,14 +145,14 @@ func (p *Port) Read(b []byte) (int, error) {
 			return read, newOSError(err)
 		}
 
-		if res.IsReadable(p.closePipeR) {
+		if res.IsReadable(p.internal.closePipeR) {
 			return read, &PortError{code: PortClosed}
 		}
-		if !res.IsReadable(p.handle) {
+		if !res.IsReadable(p.internal.handle) {
 			return read, nil
 		}
 
-		n, err := unix.Read(p.handle, buf[read:])
+		n, err := unix.Read(p.internal.handle, buf[read:])
 		if err != nil {
 			return read, newOSError(err)
 		}
@@ -172,7 +165,7 @@ func (p *Port) Read(b []byte) (int, error) {
 		read += n
 
 		now = time.Now()
-		if !now.Before(deadline) || p.firstByteTimeout {
+		if !now.Before(deadline) || p.internal.firstByteTimeout {
 			return read, nil
 		}
 	}
@@ -185,24 +178,24 @@ func (p *Port) Write(b []byte) (int, error) {
 	}
 
 	size, written := len(b), 0
-	fds := unixutils.NewFDSet(p.handle)
-	clFds := unixutils.NewFDSet(p.closePipeR)
+	fds := unixutils.NewFDSet(p.internal.handle)
+	clFds := unixutils.NewFDSet(p.internal.closePipeR)
 
-	deadline := time.Now().Add(time.Duration(p.writeTimeout) * time.Millisecond)
+	deadline := time.Now().Add(time.Duration(p.internal.writeTimeout) * time.Millisecond)
 
 	for written < size {
-		n, err := unix.Write(p.handle, b[written:])
+		n, err := unix.Write(p.internal.handle, b[written:])
 		if err != nil {
 			return written, newOSError(err)
 		}
 
-		if p.writeTimeout == 0 {
+		if p.internal.writeTimeout == 0 {
 			return n, nil
 		}
 
 		written += n
 		now := time.Now()
-		if p.writeTimeout > 0 && !now.Before(deadline) {
+		if p.internal.writeTimeout > 0 && !now.Before(deadline) {
 			return written, nil
 		}
 
@@ -211,11 +204,11 @@ func (p *Port) Write(b []byte) (int, error) {
 			return written, newOSError(err)
 		}
 
-		if res.IsReadable(p.closePipeR) {
+		if res.IsReadable(p.internal.closePipeR) {
 			return written, &PortError{code: PortClosed}
 		}
 
-		if !res.IsWritable(p.handle) {
+		if !res.IsWritable(p.internal.handle) {
 			return written, &PortError{code: WriteFailed}
 		}
 	}
@@ -227,7 +220,7 @@ func (p *Port) ResetInputBuffer() error {
 		return err
 	}
 
-	if err := ioctl(p.handle, ioctlTcflsh, unix.TCIFLUSH); err != nil {
+	if err := ioctl(p.internal.handle, ioctlTcflsh, unix.TCIFLUSH); err != nil {
 		return newOSError(err)
 	}
 	return nil
@@ -238,7 +231,7 @@ func (p *Port) ResetOutputBuffer() error {
 		return err
 	}
 
-	if err := ioctl(p.handle, ioctlTcflsh, unix.TCOFLUSH); err != nil {
+	if err := ioctl(p.internal.handle, ioctlTcflsh, unix.TCOFLUSH); err != nil {
 		return newOSError(err)
 	}
 	return nil
@@ -313,8 +306,8 @@ func (p *Port) SetReadTimeoutEx(t, i uint32) error {
 		return err // port.applyTermSettings() already returned PortError
 	}
 
-	p.firstByteTimeout = false
-	p.readTimeout = int(t)
+	p.internal.firstByteTimeout = false
+	p.internal.readTimeout = int(t)
 	return nil
 }
 
@@ -324,8 +317,8 @@ func (p *Port) SetFirstByteReadTimeout(t uint32) error {
 	}
 
 	if t > 0 && t < 0xFFFFFFFF {
-		p.firstByteTimeout = true
-		p.readTimeout = int(t)
+		p.internal.firstByteTimeout = true
+		p.internal.readTimeout = int(t)
 		return nil
 	} else {
 		return &PortError{code: InvalidTimeoutValue}
@@ -361,40 +354,30 @@ func (p *Port) GetModemStatusBits() (*ModemStatusBits, error) {
 func (p *Port) closeAndReturnError(code PortErrorCode, err error) *PortError {
 	return &PortError{code: code, causedBy: multierr.Combine(
 		err,
-		ioctl(p.handle, unix.TIOCNXCL, 0),
-		unix.Close(p.handle),
+		ioctl(p.internal.handle, unix.TIOCNXCL, 0),
+		unix.Close(p.internal.handle),
 	)}
 }
 
-func (p *Port) checkValid() error {
-	if p == nil {
-		return &PortError{code: PortClosed, causedBy: os.ErrInvalid}
-	}
-	if !p.opened {
-		return &PortError{code: PortClosed}
-	}
-	return nil
-}
-
 func (p *Port) setReadTimeoutValues(t int) {
-	p.firstByteTimeout = false
-	p.readTimeout = t
+	p.internal.firstByteTimeout = false
+	p.internal.readTimeout = t
 }
 
 func (p *Port) setWriteTimeoutValues(t int) {
-	p.writeTimeout = t
+	p.internal.writeTimeout = t
 }
 
 func (p *Port) retrieveModemBitsStatus() (int, error) {
 	var status int
-	if err := ioctl(p.handle, unix.TIOCMGET, uintptr(unsafe.Pointer(&status))); err != nil {
+	if err := ioctl(p.internal.handle, unix.TIOCMGET, uintptr(unsafe.Pointer(&status))); err != nil {
 		return 0, newOSError(err)
 	}
 	return status, nil
 }
 
 func (p *Port) applyModemBitsStatus(status int) error {
-	if err := ioctl(p.handle, unix.TIOCMSET, uintptr(unsafe.Pointer(&status))); err != nil {
+	if err := ioctl(p.internal.handle, unix.TIOCMSET, uintptr(unsafe.Pointer(&status))); err != nil {
 		return newOSError(err)
 	}
 	return nil
@@ -471,4 +454,8 @@ func GetPortsList() ([]string, error) {
 	}
 
 	return ports, nil
+}
+
+func isHandleValid(h int) bool {
+	return h != 0
 }

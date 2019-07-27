@@ -82,6 +82,10 @@ func Open(name string, opts ...Option) (*Port, error) {
 }
 
 func (p *Port) Reconfigure(opts ...Option) error {
+	if err := p.checkValid(); err != nil {
+		return err
+	}
+
 	for _, o := range opts {
 		o(p)
 	}
@@ -89,37 +93,43 @@ func (p *Port) Reconfigure(opts ...Option) error {
 }
 
 func (p *Port) Close() error {
-	if p.handle == syscall.InvalidHandle {
+	if err := p.checkValid(); err != nil {
+		return err
+	}
+
+	if p.internal.handle == syscall.InvalidHandle {
 		return nil
 	}
-	err := syscall.CloseHandle(p.handle)
-	p.handle = syscall.InvalidHandle
+	err := syscall.CloseHandle(p.internal.handle)
+	p.internal.handle = syscall.InvalidHandle
 	if err != nil {
 		return &PortError{code: OsError, causedBy: err}
 	}
 	return nil
 }
 
-func (p *Port) String() string {
-	return p.name
-}
-
 func (p *Port) ReadyToRead() (uint32, error) {
-	var (
-		errs uint32
-		stat comstat
-	)
-	if err := clearCommError(p.handle, &errs, &stat); err != nil {
+	if err := p.checkValid(); err != nil {
+		return 0, err
+	}
+
+	var errs uint32
+	var stat comstat
+	if err := clearCommError(p.internal.handle, &errs, &stat); err != nil {
 		return 0, &PortError{code: OsError, causedBy: err}
 	}
 	return stat.inque, nil
 }
 
 func (p *Port) Read(b []byte) (int, error) {
-	if p.handle == syscall.InvalidHandle {
+	if err := p.checkValid(); err != nil {
+		return 0, err
+	}
+
+	if p.internal.handle == syscall.InvalidHandle {
 		return 0, &PortError{code: PortClosed, causedBy: nil}
 	}
-	handle := p.handle
+	handle := p.internal.handle
 
 	errs := new(uint32)
 	stat := new(comstat)
@@ -129,7 +139,7 @@ func (p *Port) Read(b []byte) (int, error) {
 
 	size := uint32(len(b))
 	var readSize uint32
-	if p.timeouts.ReadTotalTimeoutConstant == 0 && p.timeouts.ReadTotalTimeoutMultiplier == 0 {
+	if p.internal.timeouts.ReadTotalTimeoutConstant == 0 && p.internal.timeouts.ReadTotalTimeoutMultiplier == 0 {
 		if stat.inque < size {
 			readSize = stat.inque
 		} else {
@@ -161,14 +171,14 @@ func (p *Port) Read(b []byte) (int, error) {
 }
 
 func (p *Port) Write(b []byte) (int, error) {
-	if p.handle == syscall.InvalidHandle {
-		return 0, &PortError{code: PortClosed, causedBy: nil}
+	if err := p.checkValid(); err != nil {
+		return 0, err
 	}
-	handle := p.handle
 
+	h := p.internal.handle
 	errs := new(uint32)
 	stat := new(comstat)
-	if err := clearCommError(handle, errs, stat); err != nil {
+	if err := clearCommError(h, errs, stat); err != nil {
 		return 0, &PortError{code: InvalidSerialPort, causedBy: err}
 	}
 
@@ -178,9 +188,9 @@ func (p *Port) Write(b []byte) (int, error) {
 	}
 	defer syscall.CloseHandle(overlapped.HEvent)
 	var written uint32
-	err = syscall.WriteFile(handle, b, &written, overlapped)
+	err = syscall.WriteFile(h, b, &written, overlapped)
 	if err == nil || err == syscall.ERROR_IO_PENDING || err == syscall.ERROR_OPERATION_ABORTED {
-		err = getOverlappedResult(handle, overlapped, &written, true)
+		err = getOverlappedResult(h, overlapped, &written, true)
 		if err == nil || err == syscall.ERROR_OPERATION_ABORTED {
 			return int(written), nil
 		}
@@ -189,14 +199,26 @@ func (p *Port) Write(b []byte) (int, error) {
 }
 
 func (p *Port) ResetInputBuffer() error {
-	return purgeComm(p.handle, purgeRxClear|purgeRxAbort)
+	if err := p.checkValid(); err != nil {
+		return err
+	}
+
+	return purgeComm(p.internal.handle, purgeRxClear|purgeRxAbort)
 }
 
 func (p *Port) ResetOutputBuffer() error {
-	return purgeComm(p.handle, purgeTxClear|purgeTxAbort)
+	if err := p.checkValid(); err != nil {
+		return err
+	}
+
+	return purgeComm(p.internal.handle, purgeTxClear|purgeTxAbort)
 }
 
 func (p *Port) SetDTR(dtr bool) error {
+	if err := p.checkValid(); err != nil {
+		return err
+	}
+
 	// Like for RTS there are problems with the escapeCommFunction
 	// observed behaviour was that DTR is set from false -> true
 	// when setting RTS from true -> false
@@ -223,7 +245,7 @@ func (p *Port) SetDTR(dtr bool) error {
 	p.hupcl = dtr
 
 	params := &dcb{}
-	if err := getCommState(p.handle, params); err != nil {
+	if err := getCommState(p.internal.handle, params); err != nil {
 		return &PortError{causedBy: err}
 	}
 
@@ -232,7 +254,7 @@ func (p *Port) SetDTR(dtr bool) error {
 		params.Flags |= dcbDTRControlEnable
 	}
 
-	if err := setCommState(p.handle, params); err != nil {
+	if err := setCommState(p.internal.handle, params); err != nil {
 		return &PortError{causedBy: err}
 	}
 
@@ -240,6 +262,10 @@ func (p *Port) SetDTR(dtr bool) error {
 }
 
 func (p *Port) SetRTS(rts bool) error {
+	if err := p.checkValid(); err != nil {
+		return err
+	}
+
 	// It seems that there is a bug in the Windows VCP driver:
 	// it doesn't send USB control message when the RTS bit is
 	// changed, so the following code not always works with
@@ -263,22 +289,26 @@ func (p *Port) SetRTS(rts bool) error {
 	// The following seems a more reliable way to do it
 
 	params := &dcb{}
-	if err := getCommState(p.handle, params); err != nil {
+	if err := getCommState(p.internal.handle, params); err != nil {
 		return &PortError{causedBy: err}
 	}
 	params.Flags &= dcbRTSControlDisableMask
 	if rts {
 		params.Flags |= dcbRTSControlEnable
 	}
-	if err := setCommState(p.handle, params); err != nil {
+	if err := setCommState(p.internal.handle, params); err != nil {
 		return &PortError{causedBy: err}
 	}
 	return nil
 }
 
 func (p *Port) GetModemStatusBits() (*ModemStatusBits, error) {
+	if err := p.checkValid(); err != nil {
+		return nil, err
+	}
+
 	var bits uint32
-	if !getCommModemStatus(p.handle, &bits) {
+	if !getCommModemStatus(p.internal.handle, &bits) {
 		return nil, &PortError{}
 	}
 	return &ModemStatusBits{
@@ -290,22 +320,34 @@ func (p *Port) GetModemStatusBits() (*ModemStatusBits, error) {
 }
 
 func (p *Port) SetReadTimeout(t int) error {
+	if err := p.checkValid(); err != nil {
+		return err
+	}
+
 	p.setReadTimeoutValues(t)
 	return p.reconfigure()
 }
 
 func (p *Port) SetReadTimeoutEx(t, i uint32) error {
-	p.timeouts.ReadIntervalTimeout = i
-	p.timeouts.ReadTotalTimeoutMultiplier = 0
-	p.timeouts.ReadTotalTimeoutConstant = t
+	if err := p.checkValid(); err != nil {
+		return err
+	}
+
+	p.internal.timeouts.ReadIntervalTimeout = i
+	p.internal.timeouts.ReadTotalTimeoutMultiplier = 0
+	p.internal.timeouts.ReadTotalTimeoutConstant = t
 	return p.reconfigure()
 }
 
 func (p *Port) SetFirstByteReadTimeout(t uint32) error {
+	if err := p.checkValid(); err != nil {
+		return err
+	}
+
 	if t > 0 && t < 0xFFFFFFFF {
-		p.timeouts.ReadIntervalTimeout = 0xFFFFFFFF
-		p.timeouts.ReadTotalTimeoutMultiplier = 0xFFFFFFFF
-		p.timeouts.ReadTotalTimeoutConstant = t
+		p.internal.timeouts.ReadIntervalTimeout = 0xFFFFFFFF
+		p.internal.timeouts.ReadTotalTimeoutMultiplier = 0xFFFFFFFF
+		p.internal.timeouts.ReadTotalTimeoutConstant = t
 		return p.reconfigure()
 	} else {
 		return &PortError{code: InvalidTimeoutValue}
@@ -313,6 +355,10 @@ func (p *Port) SetFirstByteReadTimeout(t uint32) error {
 }
 
 func (p *Port) SetWriteTimeout(t int) error {
+	if err := p.checkValid(); err != nil {
+		return err
+	}
+
 	p.setWriteTimeoutValues(t)
 	return p.reconfigure()
 }
@@ -320,45 +366,45 @@ func (p *Port) SetWriteTimeout(t int) error {
 func (p *Port) setReadTimeoutValues(t int) {
 	switch {
 	case t < 0: // Block until the buffer is full.
-		p.timeouts.ReadIntervalTimeout = 0
-		p.timeouts.ReadTotalTimeoutMultiplier = 0
-		p.timeouts.ReadTotalTimeoutConstant = 0
+		p.internal.timeouts.ReadIntervalTimeout = 0
+		p.internal.timeouts.ReadTotalTimeoutMultiplier = 0
+		p.internal.timeouts.ReadTotalTimeoutConstant = 0
 	case t == 0: // Return immediately with or without data.
-		p.timeouts.ReadIntervalTimeout = 0xFFFFFFFF
-		p.timeouts.ReadTotalTimeoutMultiplier = 0
-		p.timeouts.ReadTotalTimeoutConstant = 0
+		p.internal.timeouts.ReadIntervalTimeout = 0xFFFFFFFF
+		p.internal.timeouts.ReadTotalTimeoutMultiplier = 0
+		p.internal.timeouts.ReadTotalTimeoutConstant = 0
 	case t > 0: // Block until the buffer is full or timeout occurs.
-		p.timeouts.ReadIntervalTimeout = 0
-		p.timeouts.ReadTotalTimeoutMultiplier = 0
-		p.timeouts.ReadTotalTimeoutConstant = uint32(t)
+		p.internal.timeouts.ReadIntervalTimeout = 0
+		p.internal.timeouts.ReadTotalTimeoutMultiplier = 0
+		p.internal.timeouts.ReadTotalTimeoutConstant = uint32(t)
 	}
 }
 
 func (p *Port) setWriteTimeoutValues(t int) {
 	switch {
 	case t < 0:
-		p.timeouts.WriteTotalTimeoutMultiplier = 0
-		p.timeouts.WriteTotalTimeoutConstant = 0
+		p.internal.timeouts.WriteTotalTimeoutMultiplier = 0
+		p.internal.timeouts.WriteTotalTimeoutConstant = 0
 	case t == 0:
-		p.timeouts.WriteTotalTimeoutMultiplier = 0
-		p.timeouts.WriteTotalTimeoutConstant = 0xFFFFFFFF
+		p.internal.timeouts.WriteTotalTimeoutMultiplier = 0
+		p.internal.timeouts.WriteTotalTimeoutConstant = 0xFFFFFFFF
 	case t > 0:
-		p.timeouts.WriteTotalTimeoutMultiplier = 0
-		p.timeouts.WriteTotalTimeoutConstant = uint32(t)
+		p.internal.timeouts.WriteTotalTimeoutMultiplier = 0
+		p.internal.timeouts.WriteTotalTimeoutConstant = uint32(t)
 	}
 }
 
 func (p *Port) reconfigure() error {
-	if err := setCommTimeouts(p.handle, p.timeouts); err != nil {
+	if err := setCommTimeouts(p.internal.handle, p.internal.timeouts); err != nil {
 		p.Close()
 		return &PortError{code: InvalidSerialPort, causedBy: err}
 	}
-	if err := setCommMask(p.handle, evErr); err != nil {
+	if err := setCommMask(p.internal.handle, evErr); err != nil {
 		p.Close()
 		return &PortError{code: InvalidSerialPort, causedBy: err}
 	}
 	params := &dcb{}
-	if err := getCommState(p.handle, params); err != nil {
+	if err := getCommState(p.internal.handle, params); err != nil {
 		p.Close()
 		return &PortError{code: InvalidSerialPort, causedBy: err}
 	}
@@ -387,7 +433,7 @@ func (p *Port) reconfigure() error {
 	params.Parity = parityMap[p.parity]
 	params.StopBits = stopBitsMap[p.stopBits]
 
-	if err := setCommState(p.handle, params); err != nil {
+	if err := setCommState(p.internal.handle, params); err != nil {
 		p.Close()
 		return &PortError{code: InvalidSerialPort, causedBy: err}
 	}
@@ -423,4 +469,8 @@ func GetPortsList() ([]string, error) {
 		list[i] = syscall.UTF16ToString(data[:])
 	}
 	return list, nil
+}
+
+func isHandleValid(h syscall.Handle) bool {
+	return h != syscall.InvalidHandle
 }

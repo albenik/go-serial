@@ -8,6 +8,10 @@
 
 package serial
 
+import (
+	"os"
+)
+
 //go:generate go run $GOROOT/src/syscall/mksyscall_windows.go -output zsyscall_windows.go syscall_windows.go
 
 const (
@@ -47,24 +51,43 @@ type ModemStatusBits struct {
 
 // Port is the interface for a serial Port
 type Port struct {
-	*port // os specific (implementation like os.File)
-
 	name     string
+	opened   bool
 	baudRate int      // The serial port bitrate (aka Baudrate)
 	dataBits int      // Size of the character (must be 5, 6, 7 or 8)
 	parity   Parity   // Parity (see Parity type for more info)
 	stopBits StopBits // Stop bits (see StopBits type for more info)
 	hupcl    bool     // Lower DTR line on close (hang up)
+
+	internal *port // os specific (implementation like os.File)
+}
+
+func (p *Port) String() string {
+	if p == nil {
+		return "Error: <nil> port instance"
+	}
+	return p.name
+}
+
+func (p *Port) checkValid() error {
+	if p == nil || p.internal == nil || !isHandleValid(p.internal.handle) {
+		return &PortError{code: PortClosed, causedBy: os.ErrInvalid}
+	}
+	if !p.opened {
+		return &PortError{code: PortClosed}
+	}
+	return nil
 }
 
 func newWithDefaults(n string, p *port) *Port {
 	return &Port{
-		port:     p,
 		name:     n,
+		opened:   true,
 		baudRate: 9600,
 		dataBits: 8,
 		parity:   NoParity,
 		stopBits: OneStopBit,
 		hupcl:    false,
+		internal: p,
 	}
 }

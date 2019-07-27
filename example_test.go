@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/albenik/go-serial"
+	"github.com/albenik/go-serial/v2"
 )
 
 // This example prints the list of serial ports and use the first one

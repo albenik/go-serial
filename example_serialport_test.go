@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/albenik/go-serial"
+	"github.com/albenik/go-serial/v2"
 )
 
 func ExamplePort_Reconfigure() {
