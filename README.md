@@ -1,4 +1,4 @@
-# github.com/abenik/go-serial/v2
+# github.com/albenik/go-serial/v2
 
 [![Build Status](https://travis-ci.org/albenik/go-serial.svg?branch=v2)](https://travis-ci.org/albenik/go-serial)
 
@@ -15,7 +15,7 @@ Any PR-s are welcome.
 ## INSTALL
 
 ```
-go get -u github.com/abenik/go-serial/v2
+go get -u github.com/albenik/go-serial/v2
 ```
 
 ## Documentation and examples
