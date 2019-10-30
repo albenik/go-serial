@@ -1,41 +1,49 @@
 language: go
 
+dist: bionic
+
 os:
   - linux
   - osx
   - windows
 
 go:
-  - 1.10.x
-  - 1.11.x
   - 1.12.x
+  - 1.13.x
+  - master
 
-dist: bionic
-
-go_import_path: github.com/albenik/go-serial
+go_import_path: github.com/albenik/go-serial/v2
 
 env:
-  - GOOS=linux GOARCH=386
-  - GOOS=linux GOARCH=amd64
-  - GOOS=linux GOARCH=arm
-  - GOOS=windows GOARCH=386
-  - GOOS=windows GOARCH=amd64
-  - GOOS=darwin GOARCH=386
-  - GOOS=darwin GOARCH=amd64
-  - GOOS=freebsd GOARCH=amd64
-  - GOOS=openbsd GOARCH=amd64
-  - GOOS=openbsd GOARCH=386
-  - GOOS=openbsd GOARCH=arm
+  global:
+    - GO111MODULE=on
+    - BUILD_GO386=387
+    - BUILD_GOARM=5
+  matrix:
+    - BUILD_GOOS=linux BUILD_GOARCH=amd64
+    - BUILD_GOOS=linux BUILD_GOARCH=386
+    - BUILD_GOOS=linux BUILD_GOARCH=arm
+    - BUILD_GOOS=windows BUILD_GOARCH=386
+    - BUILD_GOOS=windows BUILD_GOARCH=amd64
+    - BUILD_GOOS=darwin BUILD_GOARCH=386
+    - BUILD_GOOS=darwin BUILD_GOARCH=amd64
+    - BUILD_GOOS=freebsd BUILD_GOARCH=amd64
+    - BUILD_GOOS=openbsd BUILD_GOARCH=amd64
+    - BUILD_GOOS=openbsd BUILD_GOARCH=386
+    - BUILD_GOOS=openbsd BUILD_GOARCH=arm
 
 matrix:
   allow_failures:
-    - env: GOOS=openbsd GOARCH=arm
+    - env: BUILD_GOOS=openbsd BUILD_GOARCH=arm
+  exclude:
+    - os: windows
+      go: master
 
 script:
-  - GOARM=5 GO386=387 GOOS=$GOOS GOARCH=$GOARCH go build -v
-  - GOARM=5 GO386=387 GOOS=$GOOS GOARCH=$GOARCH go test -c -v
-  - if [[ $GOOS == "linux" && ($GOARCH == "386" || $GOARCH == "amd64") ]]; then GO386=387 GOOS=$GOOS GOARCH=$GOARCH go test -v ./...; fi
-
+  - go vet ./...
+  - go test -v ./...
+  - GOOS=$BUILD_GOOS GOARCH=$BUILD_GOARCH GO386=$BUILD_GO386 GOARM=$BUILD_GOARM go test -v -c
+  - GOOS=$BUILD_GOOS GOARCH=$BUILD_GOARCH GO386=$BUILD_GO386 GOARM=$BUILD_GOARM go build -v
 
 notifications:
   email:

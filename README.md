@@ -14,6 +14,7 @@ Any PR-s are welcome.
 
 ## INSTALL
 
+**Will not work in GOPATH mode**
 ```
 go get -u github.com/albenik/go-serial/v2
 ```
