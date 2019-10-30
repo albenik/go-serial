@@ -8,7 +8,7 @@ A cross-platform serial library for Go.
 
 Forked from [github.com/bugst/go-serial](https://github.com/bugst/go-serial) and now developing independently.
 
-Many ideas were took from [github.com/bugst/go-serial](https://github.com/bugst/go-serial) and [github.com/pyserial/pyserial](https://github.com/pyserial/pyserial).
+Many ideas were taken from [github.com/bugst/go-serial](https://github.com/bugst/go-serial) and [github.com/pyserial/pyserial](https://github.com/pyserial/pyserial).
 
 Any PR-s are welcome.
 
