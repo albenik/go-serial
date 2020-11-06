@@ -4,7 +4,7 @@
 // license that can be found in the LICENSE file.
 //
 
-// +build darwin freebsd openbsd
+// +build freebsd openbsd
 
 package serial
 

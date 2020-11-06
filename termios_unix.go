@@ -12,10 +12,6 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-type settings struct {
-	termios *unix.Termios
-}
-
 func (s *settings) setParity(parity Parity) error {
 	switch parity {
 	case NoParity:
