@@ -16,6 +16,13 @@ jobs:
         go: [ '1.13', '1.14', '1.15' ]
         goos: [ 'linux', 'windows', 'darwin', 'freebsd', 'openbsd' ]
         goarch: [ 'amd64' ]
+
+        exclude:
+          - os: ubuntu-latest
+            goos: darwin
+          - os: windows-latest
+            goos: darwin
+
         include:
           - os: ubuntu-latest
             goos: linux
@@ -43,7 +50,7 @@ jobs:
         run: go mod download
 
       - name: Build
-        run: go env && go build -v .
+        run: go build -v .
 
       - name: Test
         run: go test -v .
