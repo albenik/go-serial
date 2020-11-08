@@ -15,13 +15,14 @@ import (
 	"strings"
 	"syscall"
 	"time"
-	"unsafe"
 
 	"go.uber.org/multierr"
 	"golang.org/x/sys/unix"
 
 	"github.com/albenik/go-serial/v2/unixutils"
 )
+
+const FIONREAD = 0x541B
 
 var zeroByte = []byte{0}
 
@@ -49,7 +50,7 @@ func Open(name string, opts ...Option) (*Port, error) {
 	}
 
 	// Accquire exclusive access
-	if err = ioctl(h, unix.TIOCEXCL, 0); err != nil {
+	if err = unix.IoctlSetInt(h, unix.TIOCEXCL, 0); err != nil {
 		return nil, newOSError(multierr.Append(err, unix.Close(h)))
 	}
 
@@ -105,7 +106,7 @@ func (p *Port) Close() error {
 		err,
 		unix.Close(p.internal.closePipeW),
 		unix.Close(p.internal.closePipeR),
-		ioctl(p.internal.handle, unix.TIOCNXCL, 0),
+		unix.IoctlSetInt(p.internal.handle, unix.TIOCNXCL, 0),
 		unix.Close(p.internal.handle),
 	)
 
@@ -120,11 +121,11 @@ func (p *Port) ReadyToRead() (uint32, error) {
 		return 0, err
 	}
 
-	var n uint32
-	if err := ioctl(p.internal.handle, FIONREAD, uintptr(unsafe.Pointer(&n))); err != nil {
+	n, err := unix.IoctlGetInt(p.internal.handle, FIONREAD)
+	if err != nil {
 		return 0, newOSError(err)
 	}
-	return n, nil
+	return uint32(n), nil
 }
 
 func (p *Port) Read(b []byte) (int, error) {
@@ -142,6 +143,9 @@ func (p *Port) Read(b []byte) (int, error) {
 	for read < size {
 		res, err := unixutils.Select(fds, nil, fds, deadline.Sub(now))
 		if err != nil {
+			if err == unix.EINTR {
+				continue
+			}
 			return read, newOSError(err)
 		}
 
@@ -154,8 +158,12 @@ func (p *Port) Read(b []byte) (int, error) {
 
 		n, err := unix.Read(p.internal.handle, buf[read:])
 		if err != nil {
+			if err == unix.EINTR {
+				continue
+			}
 			return read, newOSError(err)
 		}
+
 		// read should always return some data as select reported, it was ready to read when we got to this point.
 		if n == 0 {
 			return read, &PortError{code: ReadFailed}
@@ -220,7 +228,7 @@ func (p *Port) ResetInputBuffer() error {
 		return err
 	}
 
-	if err := ioctl(p.internal.handle, ioctlTcflsh, unix.TCIFLUSH); err != nil {
+	if err := unix.IoctlSetInt(p.internal.handle, ioctlTcflsh, unix.TCIFLUSH); err != nil {
 		return newOSError(err)
 	}
 	return nil
@@ -231,7 +239,7 @@ func (p *Port) ResetOutputBuffer() error {
 		return err
 	}
 
-	if err := ioctl(p.internal.handle, ioctlTcflsh, unix.TCOFLUSH); err != nil {
+	if err := unix.IoctlSetInt(p.internal.handle, ioctlTcflsh, unix.TCOFLUSH); err != nil {
 		return newOSError(err)
 	}
 	return nil
@@ -356,7 +364,7 @@ func (p *Port) GetModemStatusBits() (*ModemStatusBits, error) {
 func (p *Port) closeAndReturnError(code PortErrorCode, err error) *PortError {
 	return &PortError{code: code, causedBy: multierr.Combine(
 		err,
-		ioctl(p.internal.handle, unix.TIOCNXCL, 0),
+		unix.IoctlSetInt(p.internal.handle, unix.TIOCNXCL, 0),
 		unix.Close(p.internal.handle),
 	)}
 }
@@ -372,14 +380,14 @@ func (p *Port) setWriteTimeoutValues(t int) {
 
 func (p *Port) retrieveModemBitsStatus() (int, error) {
 	var status int
-	if err := ioctl(p.internal.handle, unix.TIOCMGET, uintptr(unsafe.Pointer(&status))); err != nil {
+	if err := unix.IoctlSetInt(p.internal.handle, unix.TIOCMGET, status); err != nil {
 		return 0, newOSError(err)
 	}
 	return status, nil
 }
 
 func (p *Port) applyModemBitsStatus(status int) error {
-	if err := ioctl(p.internal.handle, unix.TIOCMSET, uintptr(unsafe.Pointer(&status))); err != nil {
+	if err := unix.IoctlSetInt(p.internal.handle, unix.TIOCMSET, status); err != nil {
 		return newOSError(err)
 	}
 	return nil
