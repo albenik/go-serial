@@ -379,11 +379,11 @@ func (p *Port) setWriteTimeoutValues(t int) {
 }
 
 func (p *Port) retrieveModemBitsStatus() (int, error) {
-	var status int
-	if err := unix.IoctlSetInt(p.internal.handle, unix.TIOCMGET, status); err != nil {
+	s, err := unix.IoctlGetInt(p.internal.handle, unix.TIOCMGET)
+	if err != nil {
 		return 0, newOSError(err)
 	}
-	return status, nil
+	return s, nil
 }
 
 func (p *Port) applyModemBitsStatus(status int) error {
