@@ -280,7 +280,9 @@ func (p *Port) SetReadTimeout(t int) error {
 	return nil // timeout is done via select
 }
 
-func (p *Port) SetReadTimeoutEx(t, i uint32) error {
+// TODO Second argument was forget here while interface type that forces to implement it was removed.
+//      To support backward compatibility keep it here until version v3
+func (p *Port) SetReadTimeoutEx(t, _ uint32) error {
 	if err := p.checkValid(); err != nil {
 		return err
 	}

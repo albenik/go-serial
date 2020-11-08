@@ -1,0 +1,80 @@
+name: Go
+
+on:
+  push:
+    branches: [ v2 ]
+  pull_request:
+    branches: [ v2 ]
+
+jobs:
+  # Test
+  tests:
+    name: Run test
+
+    strategy:
+      matrix:
+        os: [ 'ubuntu-latest', 'windows-latest', 'macos-latest' ]
+        go: [ '1.13', '1.14', '1.15' ]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go }}
+
+      - name: Get dependencies
+        run: go mod download
+
+      - name: Test
+        run: go test -v .
+
+  # Build
+  build:
+    name: Cross-Build
+
+    strategy:
+      matrix:
+        os: [ 'ubuntu-latest', 'windows-latest', 'macos-latest' ]
+        go: [ '1.13', '1.14', '1.15' ]
+        goos: [ 'linux', 'windows', 'darwin', 'freebsd', 'openbsd' ]
+        goarch: [ 'amd64' ]
+
+        exclude:
+          - os: ubuntu-latest
+            goos: darwin
+          - os: windows-latest
+            goos: darwin
+
+        include:
+          - os: ubuntu-latest
+            goos: linux
+            goarch: arm
+          - os: ubuntu-latest
+            goos: openbsd
+            goarch: arm
+
+    runs-on: ${{ matrix.os }}
+
+    env:
+      GOOS: ${{ matrix.goos }}
+      GOARCH: ${{ matrix.goarch }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go }}
+
+      - name: Get dependencies
+        run: go mod download
+
+      - name: Build
+        run: go build -v .
