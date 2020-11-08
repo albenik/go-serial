@@ -7,8 +7,35 @@ on:
     branches: [ v2 ]
 
 jobs:
+  # Test
+  tests:
+    name: Run test
+
+    strategy:
+      matrix:
+        os: [ 'ubuntu-latest', 'windows-latest', 'macos-latest' ]
+        go: [ '1.13', '1.14', '1.15' ]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go }}
+
+      - name: Get dependencies
+        run: go mod download
+
+      - name: Test
+        run: go test -v .
+
+  # Build
   build:
-    name: Build
+    name: Cross-Build
 
     strategy:
       matrix:
@@ -51,6 +78,3 @@ jobs:
 
       - name: Build
         run: go build -v .
-
-      - name: Test
-        run: go test -v .
