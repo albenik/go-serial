@@ -9,20 +9,19 @@
 package serial
 
 import (
-	"unsafe"
-
 	"golang.org/x/sys/unix"
 )
 
 func (p *Port) retrieveTermSettings() (*settings, error) {
+	var err error
 	s := &settings{termios: new(unix.Termios)}
 
-	if err := ioctl(p.internal.handle, unix.TCGETS, uintptr(unsafe.Pointer(s.termios))); err != nil {
+	if s.termios, err = unix.IoctlGetTermios(p.internal.handle, unix.TCGETS); err != nil {
 		return nil, newOSError(err)
 	}
 
 	if s.termios.Cflag&unix.BOTHER == unix.BOTHER {
-		if err := ioctl(p.internal.handle, unix.TCGETS2, uintptr(unsafe.Pointer(s.termios))); err != nil {
+		if s.termios, err = unix.IoctlGetTermios(p.internal.handle, unix.TCGETS2); err != nil {
 			return nil, newOSError(err)
 		}
 	}
@@ -31,14 +30,14 @@ func (p *Port) retrieveTermSettings() (*settings, error) {
 }
 
 func (p *Port) applyTermSettings(s *settings) error {
-	req := uint64(unix.TCSETS)
-
+	req := uint(unix.TCSETS)
 	if s.termios.Cflag&unix.BOTHER == unix.BOTHER {
 		req = unix.TCSETS2
 	}
 
-	if err := ioctl(p.internal.handle, req, uintptr(unsafe.Pointer(s.termios))); err != nil {
+	if err := unix.IoctlSetTermios(p.internal.handle, req, s.termios); err != nil {
 		return newOSError(err)
 	}
+
 	return nil
 }
