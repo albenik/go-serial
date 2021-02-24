@@ -1,6 +1,6 @@
 module github.com/albenik/go-serial/v2
 
-go 1.13
+go 1.14
 
 require (
 	github.com/creack/goselect v0.1.2
