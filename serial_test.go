@@ -6,6 +6,8 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/albenik/go-serial/v2"
+
+	"os"
 )
 
 func TestPort_Nil_SetDTR(t *testing.T) {
@@ -14,6 +16,7 @@ func TestPort_Nil_SetDTR(t *testing.T) {
 	if assert.Error(t, err) && assert.IsType(t, new(serial.PortError), err) {
 		portErr := err.(*serial.PortError)
 		assert.Equal(t, serial.PortClosed, portErr.Code())
+		assert.Equal(t, os.ErrInvalid, portErr.Cause())
 	}
 }
 

@@ -91,6 +91,11 @@ func (e PortError) Code() PortErrorCode {
 	return e.code
 }
 
+// Cause returns the cause for the error
+func (e PortError) Cause() error {
+	return e.causedBy
+}
+
 func newOSError(err error) *PortError {
 	return &PortError{code: OsError, causedBy: err}
 }
