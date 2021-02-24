@@ -39,13 +39,14 @@ func Example_sendAndReceive() {
 		serial.WithStopBits(serial.OneStopBit),
 		serial.WithReadTimeout(1000),
 		serial.WithWriteTimeout(1000),
+		serial.WithHUPCL(false),
 	)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Send the string "10,20,30\n\r" to the serial port
-	n, err := port.Write([]byte("10,20,30\n\r"))
+	// Send the string "ABCDEF" to the serial port
+	n, err := fmt.Fprint(port, "ABCDEF")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -58,7 +59,6 @@ func Example_sendAndReceive() {
 		n, err := port.Read(buff)
 		if err != nil {
 			log.Fatal(err)
-			break
 		}
 		if n == 0 {
 			fmt.Println("\nEOF")

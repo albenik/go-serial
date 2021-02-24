@@ -9,22 +9,24 @@
 package serial
 
 import (
-	"unsafe"
-
 	"golang.org/x/sys/unix"
 )
 
 func (p *Port) retrieveTermSettings() (*settings, error) {
+	var err error
 	s := &settings{termios: new(unix.Termios)}
-	if err := ioctl(p.internal.handle, ioctlTcgetattr, uintptr(unsafe.Pointer(s.termios))); err != nil {
+
+	if s.termios, err = unix.IoctlGetTermios(p.internal.handle, unix.TIOCGETA); err != nil {
 		return nil, newOSError(err)
 	}
+
 	return s, nil
 }
 
 func (p *Port) applyTermSettings(s *settings) error {
-	if err := ioctl(p.internal.handle, ioctlTcsetattr, uintptr(unsafe.Pointer(s.termios))); err != nil {
+	if err := unix.IoctlSetTermios(p.internal.handle, unix.TIOCSETA, s.termios); err != nil {
 		return newOSError(err)
 	}
+
 	return nil
 }
