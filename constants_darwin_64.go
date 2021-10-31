@@ -4,6 +4,9 @@
 // that can be found in the LICENSE file.
 //
 
+// +build darwin
+// +build amd64 arm64
+
 package serial
 
 import "golang.org/x/sys/unix"
