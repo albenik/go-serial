@@ -4,7 +4,8 @@
 
 ## MacOS Note
 
-Since version **v2.1.0** `GOOS=darwin` build requires `IOKit` as dependency and is only possible on Mac with cgo enabled.
+* Since version **v2.1.0** `GOOS=darwin` build requires `IOKit` as dependency and is only possible on Mac with cgo enabled.
+* Apple M1 (darwin/arm64) is supported. (Thank to [martinhpedersen's](https://github.com/martinhpedersen) [PR](https://github.com/albenik/go-serial/pull/25))
 
 ## Package updated to v2 version
 
