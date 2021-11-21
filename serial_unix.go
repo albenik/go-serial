@@ -83,10 +83,6 @@ func Open(name string, opts ...Option) (*Port, error) {
 }
 
 func (p *Port) Reconfigure(opts ...Option) error {
-	if err := p.checkValid(); err != nil {
-		return err
-	}
-
 	for _, o := range opts {
 		o(p)
 	}
