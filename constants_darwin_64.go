@@ -4,6 +4,7 @@
 // that can be found in the LICENSE file.
 //
 
+//go:build darwin && (amd64 || arm64)
 // +build darwin
 // +build amd64 arm64
 
