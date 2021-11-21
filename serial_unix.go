@@ -5,6 +5,7 @@
 // license that can be found in the LICENSE file.
 //
 
+//go:build linux || darwin || freebsd || openbsd
 // +build linux darwin freebsd openbsd
 
 package serial

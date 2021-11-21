@@ -4,6 +4,7 @@
 // license that can be found in the LICENSE file.
 //
 
+//go:build darwin
 // +build darwin
 
 package serial
@@ -19,11 +20,10 @@ import (
 )
 
 func (p *Port) retrieveTermSettings() (*settings, error) {
-	var err error
 	s := &settings{termios: new(unix.Termios), specificBaudrate: 0}
 
-	s.termios, err = unix.IoctlGetTermios(p.internal.handle, unix.TIOCGETA)
-	if err != nil {
+	var err error
+	if s.termios, err = unix.IoctlGetTermios(p.internal.handle, unix.TIOCGETA); err != nil {
 		return nil, newOSError(err)
 	}
 
@@ -38,7 +38,8 @@ func (p *Port) applyTermSettings(s *settings) error {
 		return newOSError(err)
 	}
 
-	if err := unix.IoctlSetInt(p.internal.handle, C.IOSSIOSPEED, s.specificBaudrate); err != nil {
+	speed := s.specificBaudrate
+	if err := unix.IoctlSetPointerInt(p.internal.handle, C.IOSSIOSPEED, speed); err != nil {
 		return newOSError(err)
 	}
 

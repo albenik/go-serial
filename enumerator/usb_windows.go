@@ -91,7 +91,7 @@ const (
 	spdrpExclusive                               = 0x0000001A // Device is exclusive-access = R/W
 	spdrpCharacteristics                         = 0x0000001B // Device Characteristics = R/W
 	spdrpAddress                                 = 0x0000001C // Device Address = R
-	spdrpUINumberDescFormat                      = 0X0000001D // UiNumberDescFormat = R/W
+	spdrpUINumberDescFormat                      = 0x0000001D // UiNumberDescFormat = R/W
 	spdrpDevicePowerData                         = 0x0000001E // Device Power Data = R
 	spdrpRemovalPolicy                           = 0x0000001F // Removal Policy = R
 	spdrpRemovalPolicyHWDefault                  = 0x00000020 // Hardware Removal Policy = R
