@@ -18,12 +18,12 @@ func (p *Port) retrieveTermSettings() (*settings, error) {
 	s := &settings{termios: new(unix.Termios)}
 
 	if s.termios, err = unix.IoctlGetTermios(p.internal.handle, unix.TCGETS); err != nil {
-		return nil, newOSError(err)
+		return nil, newPortOSError(err)
 	}
 
 	if s.termios.Cflag&unix.BOTHER == unix.BOTHER {
 		if s.termios, err = unix.IoctlGetTermios(p.internal.handle, unix.TCGETS2); err != nil {
-			return nil, newOSError(err)
+			return nil, newPortOSError(err)
 		}
 	}
 
@@ -37,7 +37,7 @@ func (p *Port) applyTermSettings(s *settings) error {
 	}
 
 	if err := unix.IoctlSetTermios(p.internal.handle, req, s.termios); err != nil {
-		return newOSError(err)
+		return newPortOSError(err)
 	}
 
 	return nil

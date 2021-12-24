@@ -24,7 +24,7 @@ func (p *Port) retrieveTermSettings() (*settings, error) {
 
 	var err error
 	if s.termios, err = unix.IoctlGetTermios(p.internal.handle, unix.TIOCGETA); err != nil {
-		return nil, newOSError(err)
+		return nil, newPortOSError(err)
 	}
 
 	speed := C.cfgetispeed((*C.struct_termios)(unsafe.Pointer(s.termios)))
@@ -35,12 +35,12 @@ func (p *Port) retrieveTermSettings() (*settings, error) {
 
 func (p *Port) applyTermSettings(s *settings) error {
 	if err := unix.IoctlSetTermios(p.internal.handle, unix.TIOCSETA, s.termios); err != nil {
-		return newOSError(err)
+		return newPortOSError(err)
 	}
 
 	speed := s.specificBaudrate
 	if err := unix.IoctlSetPointerInt(p.internal.handle, C.IOSSIOSPEED, speed); err != nil {
-		return newOSError(err)
+		return newPortOSError(err)
 	}
 
 	return nil

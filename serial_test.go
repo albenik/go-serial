@@ -1,6 +1,7 @@
 package serial_test
 
 import (
+	"errors"
 	"os"
 	"testing"
 
@@ -16,7 +17,7 @@ func TestPort_Nil_SetDTR(t *testing.T) {
 	if assert.Error(t, err) && assert.IsType(t, new(serial.PortError), err) {
 		portErr := err.(*serial.PortError)
 		assert.Equal(t, serial.PortClosed, portErr.Code())
-		assert.Equal(t, os.ErrInvalid, portErr.Cause())
+		assert.ErrorIs(t, os.ErrInvalid, portErr)
 	}
 }
 
@@ -33,7 +34,38 @@ func TestSerial_Operations(t *testing.T) {
 		t.Log("No serial ports found")
 	}
 
-	for _, p := range ports {
-		t.Logf("Found port: %v", p)
+	for _, name := range ports {
+		t.Logf("Found port: %q", name)
+		port, err := serial.Open(name,
+			serial.WithBaudrate(9600),
+			serial.WithDataBits(8),
+			serial.WithParity(serial.NoParity),
+			serial.WithStopBits(serial.OneStopBit),
+			serial.WithReadTimeout(1000),
+			serial.WithWriteTimeout(1000),
+			serial.WithHUPCL(false),
+		)
+		if err == nil {
+			t.Logf("Port %q opened", name)
+			if assert.NoError(t, port.Close()) {
+				t.Logf("Port %q closed without errors", name)
+			}
+			continue
+		}
+
+		var portErr serial.PortError
+		expected := errors.As(err, &portErr) && !in(portErr.Code(), serial.OsError, serial.InvalidSerialPort)
+		if !expected {
+			assert.NoError(t, err)
+		}
 	}
+}
+
+func in(code serial.PortErrorCode, list ...serial.PortErrorCode) bool {
+	for _, c := range list {
+		if code == c {
+			return true
+		}
+	}
+	return false
 }
