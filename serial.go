@@ -71,7 +71,7 @@ func (p *Port) String() string {
 
 func (p *Port) checkValid() error {
 	if p == nil || p.internal == nil || !isHandleValid(p.internal.handle) {
-		return &PortError{code: PortClosed, causedBy: os.ErrInvalid}
+		return &PortError{code: PortClosed, wrapped: os.ErrInvalid}
 	}
 	if !p.opened {
 		return &PortError{code: PortClosed}

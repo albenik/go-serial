@@ -19,6 +19,7 @@ const (
 
 var (
 	errERROR_IO_PENDING error = syscall.Errno(errnoERROR_IO_PENDING)
+	errERROR_EINVAL     error = syscall.EINVAL
 )
 
 // errnoErr returns common boxed Errno values, to prevent
@@ -26,7 +27,7 @@ var (
 func errnoErr(e syscall.Errno) error {
 	switch e {
 	case 0:
-		return nil
+		return errERROR_EINVAL
 	case errnoERROR_IO_PENDING:
 		return errERROR_IO_PENDING
 	}
@@ -40,12 +41,12 @@ var (
 	modsetupapi = windows.NewLazySystemDLL("setupapi.dll")
 
 	procSetupDiClassGuidsFromNameW        = modsetupapi.NewProc("SetupDiClassGuidsFromNameW")
-	procSetupDiGetClassDevsW              = modsetupapi.NewProc("SetupDiGetClassDevsW")
 	procSetupDiDestroyDeviceInfoList      = modsetupapi.NewProc("SetupDiDestroyDeviceInfoList")
 	procSetupDiEnumDeviceInfo             = modsetupapi.NewProc("SetupDiEnumDeviceInfo")
+	procSetupDiGetClassDevsW              = modsetupapi.NewProc("SetupDiGetClassDevsW")
 	procSetupDiGetDeviceInstanceIdW       = modsetupapi.NewProc("SetupDiGetDeviceInstanceIdW")
-	procSetupDiOpenDevRegKey              = modsetupapi.NewProc("SetupDiOpenDevRegKey")
 	procSetupDiGetDeviceRegistryPropertyW = modsetupapi.NewProc("SetupDiGetDeviceRegistryPropertyW")
+	procSetupDiOpenDevRegKey              = modsetupapi.NewProc("SetupDiOpenDevRegKey")
 )
 
 func setupDiClassGuidsFromNameInternal(class string, guid *guid, guidSize uint32, requiredSize *uint32) (err error) {
@@ -60,11 +61,23 @@ func setupDiClassGuidsFromNameInternal(class string, guid *guid, guidSize uint32
 func _setupDiClassGuidsFromNameInternal(class *uint16, guid *guid, guidSize uint32, requiredSize *uint32) (err error) {
 	r1, _, e1 := syscall.Syscall6(procSetupDiClassGuidsFromNameW.Addr(), 4, uintptr(unsafe.Pointer(class)), uintptr(unsafe.Pointer(guid)), uintptr(guidSize), uintptr(unsafe.Pointer(requiredSize)), 0, 0)
 	if r1 == 0 {
-		if e1 != 0 {
-			err = errnoErr(e1)
-		} else {
-			err = syscall.EINVAL
-		}
+		err = errnoErr(e1)
+	}
+	return
+}
+
+func setupDiDestroyDeviceInfoList(set hDevInfo) (err error) {
+	r1, _, e1 := syscall.Syscall(procSetupDiDestroyDeviceInfoList.Addr(), 1, uintptr(set), 0, 0)
+	if r1 == 0 {
+		err = errnoErr(e1)
+	}
+	return
+}
+
+func setupDiEnumDeviceInfo(set hDevInfo, index uint32, info *pspDevInfoData) (err error) {
+	r1, _, e1 := syscall.Syscall(procSetupDiEnumDeviceInfo.Addr(), 3, uintptr(set), uintptr(index), uintptr(unsafe.Pointer(info)))
+	if r1 == 0 {
+		err = errnoErr(e1)
 	}
 	return
 }
@@ -73,35 +86,7 @@ func setupDiGetClassDevs(guid *guid, enumerator *string, hwndParent uintptr, fla
 	r0, _, e1 := syscall.Syscall6(procSetupDiGetClassDevsW.Addr(), 4, uintptr(unsafe.Pointer(guid)), uintptr(unsafe.Pointer(enumerator)), uintptr(hwndParent), uintptr(flags), 0, 0)
 	set = hDevInfo(r0)
 	if set == 0 {
-		if e1 != 0 {
-			err = errnoErr(e1)
-		} else {
-			err = syscall.EINVAL
-		}
-	}
-	return
-}
-
-func setupDiDestroyDeviceInfoList(set hDevInfo) (err error) {
-	r1, _, e1 := syscall.Syscall(procSetupDiDestroyDeviceInfoList.Addr(), 1, uintptr(set), 0, 0)
-	if r1 == 0 {
-		if e1 != 0 {
-			err = errnoErr(e1)
-		} else {
-			err = syscall.EINVAL
-		}
-	}
-	return
-}
-
-func setupDiEnumDeviceInfo(set hDevInfo, index uint32, info *pspDevInfoData) (err error) {
-	r1, _, e1 := syscall.Syscall(procSetupDiEnumDeviceInfo.Addr(), 3, uintptr(set), uintptr(index), uintptr(unsafe.Pointer(info)))
-	if r1 == 0 {
-		if e1 != 0 {
-			err = errnoErr(e1)
-		} else {
-			err = syscall.EINVAL
-		}
+		err = errnoErr(e1)
 	}
 	return
 }
@@ -109,24 +94,7 @@ func setupDiEnumDeviceInfo(set hDevInfo, index uint32, info *pspDevInfoData) (er
 func setupDiGetDeviceInstanceId(set hDevInfo, devInfo *pspDevInfoData, devInstanceId unsafe.Pointer, devInstanceIdSize uint32, requiredSize *uint32) (err error) {
 	r1, _, e1 := syscall.Syscall6(procSetupDiGetDeviceInstanceIdW.Addr(), 5, uintptr(set), uintptr(unsafe.Pointer(devInfo)), uintptr(devInstanceId), uintptr(devInstanceIdSize), uintptr(unsafe.Pointer(requiredSize)), 0)
 	if r1 == 0 {
-		if e1 != 0 {
-			err = errnoErr(e1)
-		} else {
-			err = syscall.EINVAL
-		}
-	}
-	return
-}
-
-func setupDiOpenDevRegKey(set hDevInfo, devInfo *pspDevInfoData, scope dicsScope, hwProfile uint32, keyType uint32, samDesired regsam) (hkey syscall.Handle, err error) {
-	r0, _, e1 := syscall.Syscall6(procSetupDiOpenDevRegKey.Addr(), 6, uintptr(set), uintptr(unsafe.Pointer(devInfo)), uintptr(scope), uintptr(hwProfile), uintptr(keyType), uintptr(samDesired))
-	hkey = syscall.Handle(r0)
-	if hkey == 0 {
-		if e1 != 0 {
-			err = errnoErr(e1)
-		} else {
-			err = syscall.EINVAL
-		}
+		err = errnoErr(e1)
 	}
 	return
 }
@@ -134,5 +102,14 @@ func setupDiOpenDevRegKey(set hDevInfo, devInfo *pspDevInfoData, scope dicsScope
 func setupDiGetDeviceRegistryProperty(set hDevInfo, devInfo *pspDevInfoData, property deviceProperty, propertyType *uint32, outValue *byte, outSize uint32, reqSize *uint32) (res bool) {
 	r0, _, _ := syscall.Syscall9(procSetupDiGetDeviceRegistryPropertyW.Addr(), 7, uintptr(set), uintptr(unsafe.Pointer(devInfo)), uintptr(property), uintptr(unsafe.Pointer(propertyType)), uintptr(unsafe.Pointer(outValue)), uintptr(outSize), uintptr(unsafe.Pointer(reqSize)), 0, 0)
 	res = r0 != 0
+	return
+}
+
+func setupDiOpenDevRegKey(set hDevInfo, devInfo *pspDevInfoData, scope dicsScope, hwProfile uint32, keyType uint32, samDesired regsam) (hkey syscall.Handle, err error) {
+	r0, _, e1 := syscall.Syscall6(procSetupDiOpenDevRegKey.Addr(), 6, uintptr(set), uintptr(unsafe.Pointer(devInfo)), uintptr(scope), uintptr(hwProfile), uintptr(keyType), uintptr(samDesired))
+	hkey = syscall.Handle(r0)
+	if hkey == 0 {
+		err = errnoErr(e1)
+	}
 	return
 }

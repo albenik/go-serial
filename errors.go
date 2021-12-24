@@ -4,8 +4,9 @@ package serial
 type PortErrorCode int
 
 const (
+	PortErrorUnknown PortErrorCode = iota
 	// PortBusy the serial port is already in used by another process
-	PortBusy PortErrorCode = iota
+	PortBusy
 	// PortNotFound the requested port doesn't exist
 	PortNotFound
 	// InvalidSerialPort the requested port is not a serial port
@@ -20,7 +21,7 @@ const (
 	InvalidParity
 	// InvalidStopBits the selected number of stop bits is not valid or not supported
 	InvalidStopBits
-	// Invalid timeout value passed
+	// InvalidTimeoutValue Invalid timeout value passed
 	InvalidTimeoutValue
 	// ErrorEnumeratingPorts an error occurred while listing serial port
 	ErrorEnumeratingPorts
@@ -28,23 +29,25 @@ const (
 	PortClosed
 	// FunctionNotImplemented the requested function is not implemented
 	FunctionNotImplemented
-	// Operating system function error
+	// OsError Operating system function error
 	OsError
-	// Port write failed
+	// WriteFailed Port write failed
 	WriteFailed
-	// Port read failed
+	// ReadFailed Port read failed
 	ReadFailed
 )
 
 // PortError is a platform independent error type for serial ports
 type PortError struct {
-	code     PortErrorCode
-	causedBy error
+	code    PortErrorCode
+	wrapped error
 }
 
 // EncodedErrorString returns a string explaining the error code
 func (e PortError) EncodedErrorString() string {
 	switch e.code {
+	case PortErrorUnknown:
+		return "error code not set"
 	case PortBusy:
 		return "serial port busy"
 	case PortNotFound:
@@ -80,10 +83,14 @@ func (e PortError) EncodedErrorString() string {
 
 // Error returns the complete error code with details on the cause of the error
 func (e PortError) Error() string {
-	if e.causedBy != nil {
-		return e.EncodedErrorString() + ": " + e.causedBy.Error()
+	if e.wrapped != nil {
+		return e.EncodedErrorString() + ": " + e.wrapped.Error()
 	}
 	return e.EncodedErrorString()
+}
+
+func (e PortError) Unwrap() error {
+	return e.wrapped
 }
 
 // Code returns an identifier for the kind of error occurred
@@ -92,10 +99,11 @@ func (e PortError) Code() PortErrorCode {
 }
 
 // Cause returns the cause for the error
+// Deprecated. Use go1.13 error iterface Unwrap() instead.
 func (e PortError) Cause() error {
-	return e.causedBy
+	return e.Unwrap()
 }
 
-func newOSError(err error) *PortError {
-	return &PortError{code: OsError, causedBy: err}
+func newPortOSError(err error) *PortError {
+	return &PortError{code: OsError, wrapped: err}
 }

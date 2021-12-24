@@ -50,9 +50,9 @@ func Open(name string, opts ...Option) (*Port, error) {
 		return nil, err
 	}
 
-	// Accquire exclusive access
-	if err = unix.IoctlSetInt(h, unix.TIOCEXCL, 0); err != nil {
-		return nil, newOSError(multierr.Append(err, unix.Close(h)))
+	// does nothing in build for android
+	if err = accquireExclusiveAccess(h); err != nil {
+		return nil, newPortOSError(multierr.Append(err, unix.Close(h)))
 	}
 
 	p := newWithDefaults(name, &port{
@@ -82,17 +82,6 @@ func Open(name string, opts ...Option) (*Port, error) {
 	return p, nil
 }
 
-func (p *Port) Reconfigure(opts ...Option) error {
-	if err := p.checkValid(); err != nil {
-		return err
-	}
-
-	for _, o := range opts {
-		o(p)
-	}
-	return p.reconfigure()
-}
-
 func (p *Port) Close() error {
 	// NOT thread safe
 	if err := p.checkValid(); err != nil {
@@ -112,9 +101,16 @@ func (p *Port) Close() error {
 	)
 
 	if err != nil {
-		return newOSError(err)
+		return newPortOSError(err)
 	}
 	return nil
+}
+
+func (p *Port) Reconfigure(opts ...Option) error {
+	for _, o := range opts {
+		o(p)
+	}
+	return p.reconfigure()
 }
 
 func (p *Port) ReadyToRead() (uint32, error) {
@@ -124,7 +120,7 @@ func (p *Port) ReadyToRead() (uint32, error) {
 
 	n, err := unix.IoctlGetInt(p.internal.handle, FIONREAD)
 	if err != nil {
-		return 0, newOSError(err)
+		return 0, newPortOSError(err)
 	}
 	return uint32(n), nil
 }
@@ -147,7 +143,7 @@ func (p *Port) Read(b []byte) (int, error) {
 			if err == unix.EINTR {
 				continue
 			}
-			return read, newOSError(err)
+			return read, newPortOSError(err)
 		}
 
 		if res.IsReadable(p.internal.closePipeR) {
@@ -162,7 +158,7 @@ func (p *Port) Read(b []byte) (int, error) {
 			if err == unix.EINTR {
 				continue
 			}
-			return read, newOSError(err)
+			return read, newPortOSError(err)
 		}
 
 		// read should always return some data as select reported, it was ready to read when we got to this point.
@@ -195,7 +191,7 @@ func (p *Port) Write(b []byte) (int, error) {
 	for written < size {
 		n, err := unix.Write(p.internal.handle, b[written:])
 		if err != nil {
-			return written, newOSError(err)
+			return written, newPortOSError(err)
 		}
 
 		if p.internal.writeTimeout == 0 {
@@ -210,7 +206,7 @@ func (p *Port) Write(b []byte) (int, error) {
 
 		res, err := unixutils.Select(clFds, fds, fds, deadline.Sub(now))
 		if err != nil {
-			return written, newOSError(err)
+			return written, newPortOSError(err)
 		}
 
 		if res.IsReadable(p.internal.closePipeR) {
@@ -230,7 +226,7 @@ func (p *Port) ResetInputBuffer() error {
 	}
 
 	if err := unix.IoctlSetInt(p.internal.handle, ioctlTcflsh, unix.TCIFLUSH); err != nil {
-		return newOSError(err)
+		return newPortOSError(err)
 	}
 	return nil
 }
@@ -241,7 +237,7 @@ func (p *Port) ResetOutputBuffer() error {
 	}
 
 	if err := unix.IoctlSetInt(p.internal.handle, ioctlTcflsh, unix.TCOFLUSH); err != nil {
-		return newOSError(err)
+		return newPortOSError(err)
 	}
 	return nil
 }
@@ -289,9 +285,10 @@ func (p *Port) SetReadTimeout(t int) error {
 	return nil // timeout is done via select
 }
 
-// TODO Second argument was forget here while interface type that forces to implement it was removed.
-//      To support backward compatibility keep it here until version v3
-func (p *Port) SetReadTimeoutEx(t, _ uint32) error {
+// SetReadTimeoutEx Sets advanced timeouts.
+// Second argument was forget here due refactoring and keeping now for backward compatibility.
+// TODO Remove second argument in version v3.
+func (p *Port) SetReadTimeoutEx(t uint32, _ ...uint32) error {
 	if err := p.checkValid(); err != nil {
 		return err
 	}
@@ -362,14 +359,6 @@ func (p *Port) GetModemStatusBits() (*ModemStatusBits, error) {
 	}, nil
 }
 
-func (p *Port) closeAndReturnError(code PortErrorCode, err error) *PortError {
-	return &PortError{code: code, causedBy: multierr.Combine(
-		err,
-		unix.IoctlSetInt(p.internal.handle, unix.TIOCNXCL, 0),
-		unix.Close(p.internal.handle),
-	)}
-}
-
 func (p *Port) setReadTimeoutValues(t int) {
 	p.internal.firstByteTimeout = false
 	p.internal.readTimeout = t
@@ -382,14 +371,14 @@ func (p *Port) setWriteTimeoutValues(t int) {
 func (p *Port) retrieveModemBitsStatus() (int, error) {
 	s, err := unix.IoctlGetInt(p.internal.handle, unix.TIOCMGET)
 	if err != nil {
-		return 0, newOSError(err)
+		return 0, newPortOSError(err)
 	}
 	return s, nil
 }
 
 func (p *Port) applyModemBitsStatus(status int) error {
 	if err := unix.IoctlSetInt(p.internal.handle, unix.TIOCMSET, status); err != nil {
-		return newOSError(err)
+		return newPortOSError(err)
 	}
 	return nil
 }
