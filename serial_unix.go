@@ -82,13 +82,6 @@ func Open(name string, opts ...Option) (*Port, error) {
 	return p, nil
 }
 
-func (p *Port) Reconfigure(opts ...Option) error {
-	for _, o := range opts {
-		o(p)
-	}
-	return p.reconfigure()
-}
-
 func (p *Port) Close() error {
 	// NOT thread safe
 	if err := p.checkValid(); err != nil {
@@ -111,6 +104,13 @@ func (p *Port) Close() error {
 		return newPortOSError(err)
 	}
 	return nil
+}
+
+func (p *Port) Reconfigure(opts ...Option) error {
+	for _, o := range opts {
+		o(p)
+	}
+	return p.reconfigure()
 }
 
 func (p *Port) ReadyToRead() (uint32, error) {
@@ -288,7 +288,7 @@ func (p *Port) SetReadTimeout(t int) error {
 // SetReadTimeoutEx Sets advanced timeouts.
 // Second argument was forget here due refactoring and keeping now for backward compatibility.
 // TODO Remove second argument in version v3.
-func (p *Port) SetReadTimeoutEx(t, _ uint32) error {
+func (p *Port) SetReadTimeoutEx(t uint32, _ ...uint32) error {
 	if err := p.checkValid(); err != nil {
 		return err
 	}

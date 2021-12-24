@@ -81,17 +81,6 @@ func Open(name string, opts ...Option) (*Port, error) {
 	return port, nil
 }
 
-func (p *Port) Reconfigure(opts ...Option) error {
-	if err := p.checkValid(); err != nil {
-		return err
-	}
-
-	for _, o := range opts {
-		o(p)
-	}
-	return p.reconfigure()
-}
-
 func (p *Port) Close() error {
 	if err := p.checkValid(); err != nil {
 		return err
@@ -106,6 +95,17 @@ func (p *Port) Close() error {
 		return &PortError{code: OsError, wrapped: err}
 	}
 	return nil
+}
+
+func (p *Port) Reconfigure(opts ...Option) error {
+	if err := p.checkValid(); err != nil {
+		return err
+	}
+
+	for _, o := range opts {
+		o(p)
+	}
+	return p.reconfigure()
 }
 
 func (p *Port) ReadyToRead() (uint32, error) {
@@ -302,23 +302,6 @@ func (p *Port) SetRTS(rts bool) error {
 	return nil
 }
 
-func (p *Port) GetModemStatusBits() (*ModemStatusBits, error) {
-	if err := p.checkValid(); err != nil {
-		return nil, err
-	}
-
-	var bits uint32
-	if !getCommModemStatus(p.internal.handle, &bits) {
-		return nil, &PortError{}
-	}
-	return &ModemStatusBits{
-		CTS: (bits & msCTSOn) != 0,
-		DCD: (bits & msRLSDOn) != 0,
-		DSR: (bits & msDSROn) != 0,
-		RI:  (bits & msRingOn) != 0,
-	}, nil
-}
-
 func (p *Port) SetReadTimeout(t int) error {
 	if err := p.checkValid(); err != nil {
 		return err
@@ -361,6 +344,23 @@ func (p *Port) SetWriteTimeout(t int) error {
 
 	p.setWriteTimeoutValues(t)
 	return p.reconfigure()
+}
+
+func (p *Port) GetModemStatusBits() (*ModemStatusBits, error) {
+	if err := p.checkValid(); err != nil {
+		return nil, err
+	}
+
+	var bits uint32
+	if !getCommModemStatus(p.internal.handle, &bits) {
+		return nil, &PortError{}
+	}
+	return &ModemStatusBits{
+		CTS: (bits & msCTSOn) != 0,
+		DCD: (bits & msRLSDOn) != 0,
+		DSR: (bits & msDSROn) != 0,
+		RI:  (bits & msRingOn) != 0,
+	}, nil
 }
 
 func (p *Port) setReadTimeoutValues(t int) {

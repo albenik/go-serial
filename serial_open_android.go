@@ -15,7 +15,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func accquireExclusiveAccess(int) error {
+func accquireExclusiveAccess(_ int) error {
 	return nil
 }
 

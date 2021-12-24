@@ -5,21 +5,81 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/albenik/go-serial/v2"
 )
 
-func TestPort_Nil_SetDTR(t *testing.T) {
-	var p *serial.Port
-	err := p.SetDTR(false)
-	if assert.Error(t, err) && assert.IsType(t, new(serial.PortError), err) {
-		portErr := err.(*serial.PortError)
+func TestPortNilReciever_Error(t *testing.T) {
+	checkError := func(err error) {
+		var portErr *serial.PortError
+		require.ErrorAs(t, err, &portErr)
 		assert.Equal(t, serial.PortClosed, portErr.Code())
-		assert.ErrorIs(t, os.ErrInvalid, portErr)
+		assert.ErrorIs(t, err, os.ErrInvalid)
 	}
+
+	t.Run("Close", func(t *testing.T) {
+		checkError((*serial.Port)(nil).Close())
+	})
+
+	t.Run("Reconfigure", func(t *testing.T) {
+		checkError((*serial.Port)(nil).Reconfigure())
+	})
+
+	t.Run("ReadyToRead", func(t *testing.T) {
+		_, err := (*serial.Port)(nil).ReadyToRead()
+		checkError(err)
+	})
+
+	t.Run("Read", func(t *testing.T) {
+		_, err := (*serial.Port)(nil).Read(make([]byte, 16))
+		checkError(err)
+	})
+
+	t.Run("Write", func(t *testing.T) {
+		_, err := (*serial.Port)(nil).Write([]byte{1, 2, 3, 4, 5, 6, 7, 8})
+		checkError(err)
+	})
+
+	t.Run("ResetInputBuffer", func(t *testing.T) {
+		checkError((*serial.Port)(nil).ResetInputBuffer())
+	})
+
+	t.Run("ResetOutputBuffer", func(t *testing.T) {
+		checkError((*serial.Port)(nil).ResetOutputBuffer())
+	})
+
+	t.Run("SetDTR", func(t *testing.T) {
+		checkError((*serial.Port)(nil).SetDTR(false))
+	})
+
+	t.Run("SetRTS", func(t *testing.T) {
+		checkError((*serial.Port)(nil).SetRTS(false))
+	})
+
+	t.Run("SetReadTimeout", func(t *testing.T) {
+		checkError((*serial.Port)(nil).SetReadTimeout(1))
+	})
+
+	t.Run("SetReadTimeoutEx", func(t *testing.T) {
+		checkError((*serial.Port)(nil).SetReadTimeoutEx(1, 0))
+	})
+
+	t.Run("SetFirstByteReadTimeout", func(t *testing.T) {
+		checkError((*serial.Port)(nil).SetFirstByteReadTimeout(1))
+	})
+
+	t.Run("SetWriteTimeout", func(t *testing.T) {
+		checkError((*serial.Port)(nil).SetWriteTimeout(1))
+	})
+
+	t.Run("GetModemStatusBits", func(t *testing.T) {
+		_, err := (*serial.Port)(nil).GetModemStatusBits()
+		checkError(err)
+	})
 }
 
-func TestPort_Nil_String(t *testing.T) {
+func TestPortTestPortNilReciever_String(t *testing.T) {
 	var p *serial.Port
 	assert.Equal(t, "Error: <nil> port instance", p.String())
 }
