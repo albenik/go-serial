@@ -4,8 +4,8 @@
 // license that can be found in the LICENSE file.
 //
 
-//go:build linux && !android
-// +build linux,!android
+//go:build android
+// +build android
 
 package serial
 
@@ -22,22 +22,11 @@ func (p *Port) retrieveTermSettings() (s *settings, err error) {
 		return nil, newPortOSError(err)
 	}
 
-	if s.termios.Cflag&unix.BOTHER == unix.BOTHER {
-		if s.termios, err = unix.IoctlGetTermios(p.internal.handle, unix.TCGETS2); err != nil {
-			return nil, newPortOSError(err)
-		}
-	}
-
 	return s, nil
 }
 
 func (p *Port) applyTermSettings(s *settings) error {
-	req := uint(unix.TCSETS)
-	if s.termios.Cflag&unix.BOTHER == unix.BOTHER {
-		req = unix.TCSETS2
-	}
-
-	if err := unix.IoctlSetTermios(p.internal.handle, req, s.termios); err != nil {
+	if err := unix.IoctlSetTermios(p.internal.handle, unix.TCSETS, s.termios); err != nil {
 		return newPortOSError(err)
 	}
 

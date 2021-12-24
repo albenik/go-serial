@@ -50,8 +50,8 @@ func Open(name string, opts ...Option) (*Port, error) {
 		return nil, err
 	}
 
-	// Accquire exclusive access
-	if err = unix.IoctlSetInt(h, unix.TIOCEXCL, 0); err != nil {
+	// does nothing in build for android
+	if err = accquireExclusiveAccess(h); err != nil {
 		return nil, newPortOSError(multierr.Append(err, unix.Close(h)))
 	}
 
@@ -285,8 +285,9 @@ func (p *Port) SetReadTimeout(t int) error {
 	return nil // timeout is done via select
 }
 
-// TODO Second argument was forget here while interface type that forces to implement it was removed.
-//      To support backward compatibility keep it here until version v3
+// SetReadTimeoutEx Sets advanced timeouts.
+// Second argument was forget here due refactoring and keeping now for backward compatibility.
+// TODO Remove second argument in version v3.
 func (p *Port) SetReadTimeoutEx(t, _ uint32) error {
 	if err := p.checkValid(); err != nil {
 		return err
@@ -356,14 +357,6 @@ func (p *Port) GetModemStatusBits() (*ModemStatusBits, error) {
 		DSR: (status & unix.TIOCM_DSR) != 0,
 		RI:  (status & unix.TIOCM_RI) != 0,
 	}, nil
-}
-
-func (p *Port) closeAndReturnError(code PortErrorCode, err error) *PortError {
-	return &PortError{code: code, wrapped: multierr.Combine(
-		err,
-		unix.IoctlSetInt(p.internal.handle, unix.TIOCNXCL, 0),
-		unix.Close(p.internal.handle),
-	)}
 }
 
 func (p *Port) setReadTimeoutValues(t int) {
