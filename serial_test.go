@@ -1,12 +1,10 @@
 package serial_test
 
 import (
-	"errors"
 	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/albenik/go-serial/v2"
 )
@@ -26,6 +24,7 @@ func TestPort_Nil_String(t *testing.T) {
 	assert.Equal(t, "Error: <nil> port instance", p.String())
 }
 
+/*
 func TestSerial_Operations(t *testing.T) {
 	ports, err := serial.GetPortsList()
 	require.NoError(t, err)
@@ -69,3 +68,4 @@ func in(code serial.PortErrorCode, list ...serial.PortErrorCode) bool {
 	}
 	return false
 }
+*/
