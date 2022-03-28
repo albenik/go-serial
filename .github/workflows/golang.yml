@@ -9,7 +9,7 @@ on:
 jobs:
   # Test
   tests:
-    name: Run tests on ${{ matrix.os }} ${{ matrix.go }}
+    name: Test on ${{ matrix.os }} go${{ matrix.go }}
 
     strategy:
       matrix:
@@ -39,16 +39,19 @@ jobs:
       - name: Test
         run: go test -v -race ./...
 
-  # Link
+  # Lint
   lint:
-    name: Test with go ${{ matrix.go }}
-    runs-on: ubuntu-latest
+    name: Lint with go${{ matrix.go }}
+
     strategy:
       matrix:
         go:
           - 1.16
           - 1.17
           - 1.18
+
+    runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v2
@@ -57,11 +60,10 @@ jobs:
       - uses: golangci/golangci-lint-action@v2
         with:
           version: v1.45
-      - run: go test -v ./...
 
   # Build
   build:
-    name: Build on ${{ matrix.os }} ${{ matrix.go }} for GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }}
+    name: Build on ${{ matrix.os }} go${{ matrix.go }} for GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }}
 
     strategy:
       matrix:
