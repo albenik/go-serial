@@ -16,7 +16,6 @@ import (
 // This example prints the list of serial ports and use the first one
 // to send a string "10,20,30" and prints the response on the screen.
 func Example_sendAndReceive() {
-
 	// Retrieve the port list
 	ports, err := serial.GetPortsList()
 	if err != nil {

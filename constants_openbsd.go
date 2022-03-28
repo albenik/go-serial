@@ -8,10 +8,19 @@ package serial
 
 import "golang.org/x/sys/unix"
 
-const devFolder = "/dev"
-const regexFilter = "^(cu|tty)\\..*"
+const (
+	devicesBasePath = "/dev"
+	regexFilter     = "^(cu|tty)\\..*"
 
-// termios manipulation functions
+	tcCMSPAR uint32 = 0 // may be CMSPAR or PAREXT
+	tcIUCLC  uint32 = 0
+
+	tcCCTS_OFLOW uint32 = 0x00010000 //nolint:revive,stylecheck
+	// tcCRTS_IFLOW uint32 = 0x00020000 //nolint:revive,stylecheck
+	tcCRTSCTS = tcCCTS_OFLOW
+
+	ioctlTcflsh = unix.TIOCFLUSH
+)
 
 var baudrateMap = map[int]uint32{
 	0:      unix.B9600, // Default to 9600
@@ -44,16 +53,6 @@ var databitsMap = map[int]uint32{
 	7: unix.CS7,
 	8: unix.CS8,
 }
-
-const tcCMSPAR uint32 = 0 // may be CMSPAR or PAREXT
-const tcIUCLC uint32 = 0
-
-const tcCCTS_OFLOW uint32 = 0x00010000
-const tcCRTS_IFLOW uint32 = 0x00020000
-
-const tcCRTSCTS = tcCCTS_OFLOW
-
-const ioctlTcflsh = unix.TIOCFLUSH
 
 func toTermiosSpeedType(speed uint32) int32 {
 	return int32(speed)

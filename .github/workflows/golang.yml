@@ -1,0 +1,115 @@
+name: Go
+
+on:
+  push:
+    branches: [ v* ]
+  pull_request:
+    branches: [ v* ]
+
+jobs:
+  # Test
+  tests:
+    name: Test go${{ matrix.go }} on ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os:
+          - 'ubuntu-latest'
+          - 'macos-latest'
+          - 'windows-latest'
+        go:
+          - '1.16'
+          - '1.17'
+          - '1.18'
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go }}
+
+      - name: Get dependencies
+        run: go mod download
+
+      - name: Test
+        run: go test -v -race ./...
+
+  # Lint
+  #  lint:
+  #    name: Lint go${{ matrix.go }}
+  #
+  #    strategy:
+  #      matrix:
+  #        go:
+  #          - 1.16
+  #          - 1.17
+  #          - 1.18
+  #
+  #    runs-on: ubuntu-latest
+  #
+  #    steps:
+  #      - uses: actions/checkout@v2
+  #      - uses: actions/setup-go@v2
+  #        with:
+  #          go-version: ${{ matrix.go }}
+  #      - uses: golangci/golangci-lint-action@v2
+  #        with:
+  #          version: v1.45
+
+  # Build
+  build:
+    name: Build go${{ matrix.go }} ${{ matrix.goos }}/${{ matrix.goarch }} on ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        # `go tool dist list` with many exclusions
+        include:
+          - { os: ubuntu-latest, goos: linux, goarch: amd64 }
+          - { os: ubuntu-latest, goos: linux, goarch: arm64 }
+          - { os: ubuntu-latest, goos: linux, goarch: ppc64le }
+
+          - { os: ubuntu-latest, goos: android, goarch: amd64 }
+          - { os: ubuntu-latest, goos: android, goarch: arm64 }
+
+          - { os: ubuntu-latest, goos: freebsd, goarch: amd64 }
+          - { os: ubuntu-latest, goos: freebsd, goarch: arm64 }
+
+          - { os: ubuntu-latest, goos: openbsd, goarch: amd64 }
+          - { os: ubuntu-latest, goos: openbsd, goarch: arm64 }
+
+          # MacOS IOKit required, so no cross-build available
+          # - { os: ubuntu-latest, goos: darwin, goarch: amd64 }
+          # - { os: ubuntu-latest, goos: darwin, goarch: arm64 }
+
+          - { os: macos-latest, goos: darwin, goarch: amd64 }
+          # Currently `macos-latest` is equeal to `macos-11` which does not support arm64
+          # - { os: macos-latest, goos: darwin, goarch: arm64 }
+
+          - { os: windows-latest, goos: windows, goarch: amd64 }
+          - { os: windows-latest, goos: windows, goarch: arm64 }
+
+    runs-on: ${{ matrix.os }}
+
+    env:
+      GOOS: ${{ matrix.goos }}
+      GOARCH: ${{ matrix.goarch }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.18
+
+      - name: Get dependencies
+        run: go mod download
+
+      - name: Build
+        run: go build

@@ -1,0 +1,80 @@
+run:
+  timeout: 3m
+  issues-exit-code: 1
+  concurrency: 4
+  allow-parallel-runners: true
+  tests: true
+
+output:
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+
+linters-settings:
+  cyclop:
+    max-complexity: 20
+    package-average: 0.0 # the maximal average package complexity. If it's higher than 0.0 (float) the check is enabled (default 0.0)
+    skip-tests: true
+  funlen:
+    lines: 60
+    statements: 40
+  golint:
+    min-confidence: 0.9
+
+  gci:
+    no-inline-comments: true
+    no-prefix-comments: true
+    sections:
+      - standard
+      - default
+      - prefix(github.com/albenik/go-serial)
+    section-separators:
+      - newLine
+
+  lll:
+    line-length: 140
+
+linters:
+  enable-all: true
+  # Please keep in order
+  disable:
+    - exhaustivestruct # Unecessary annoying!
+    - goerr113           # Useful but not in this package!
+    - gochecknoglobals # Too paranoic!
+    - goimports        # Latest gci with sections is good enougth
+    - golint           # The linter 'golint' is deprecated (since v1.41.0) due to: The repository of the linter has been archived by the owner.  Replaced by revive.
+    - interfacer       # The linter 'interfacer' is deprecated (since v1.38.0) due to: The repository of the linter has been archived by the owner.
+    - ireturn          # Yes! Some functions retures interfaces.
+    - maligned         # The linter 'maligned' is deprecated (since v1.38.0) due to: The repository of the linter has been archived by the owner.  Replaced by govet 'fieldalignment'.
+    - nlreturn         # Personally I hate mandatory blank lines before returns.
+    - paralleltest
+    - scopelint        # The linter 'scopelint' is deprecated (since v1.39.0) due to: The repository of the linter has been deprecated by the owner.  Replaced by exportloopref.
+    - varnamelen       # Annoying!
+    - unparam          # Panics with GOOS=linux
+    - wrapcheck        # Not needed!
+    - wsl              # Unecessary annoying!
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - gochecknoglobals
+        - funlen
+        - lll
+        - wrapcheck
+
+    - text: "Line contains TODO/BUG/FIXME"
+      linters:
+        - godox
+
+    - source: "//go:generate"
+      linters:
+        - lll
+
+    - source: "C\\."
+      linters:
+        - unconvert
+
+    - source: "(?:dataBits:\\s+\\d+|baudRate:\\s+\\d+)"
+      linters:
+        - gomnd

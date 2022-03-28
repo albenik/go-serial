@@ -21,7 +21,7 @@ import (
 )
 
 func nativeGetDetailedPortsList() ([]*PortDetails, error) {
-	var ports []*PortDetails
+	ports := make([]*PortDetails, 0, 8) //nolint:gomnd
 
 	services, err := getAllServices("IOSerialBSDClient")
 	if err != nil {
@@ -42,7 +42,7 @@ func extractPortInfo(s C.io_object_t) (*PortDetails, error) {
 	service := C.io_registry_entry_t(s)
 	name, err := service.GetStringProperty("IOCalloutDevice")
 	if err != nil {
-		return nil, fmt.Errorf("error extracting port info from device: %s", err.Error())
+		return nil, fmt.Errorf("error extracting port info from device: %w", err)
 	}
 	port := &PortDetails{}
 	port.Name = name
@@ -115,7 +115,7 @@ func getMatchingServices(matcher C.CFMutableDictionaryRef) (C.io_iterator_t, err
 	var i C.io_iterator_t
 	err := C.IOServiceGetMatchingServices(C.kIOMasterPortDefault, C.CFDictionaryRef(matcher), &i)
 	if err != C.KERN_SUCCESS {
-		return 0, fmt.Errorf("IOServiceGetMatchingServices failed (code %d)", err)
+		return 0, fmt.Errorf("IOServiceGetMatchingServices failed (code %v)", err)
 	}
 	return i, nil
 }
@@ -147,7 +147,7 @@ func (e *C.io_registry_entry_t) GetParent(plane string) (C.io_registry_entry_t, 
 	var parent C.io_registry_entry_t
 	err := C.IORegistryEntryGetParentEntry(*e, cPlane, &parent)
 	if err != 0 {
-		return 0, errors.New("No parent device available")
+		return 0, errors.New("no parent device available")
 	}
 	return parent, nil
 }
@@ -157,7 +157,7 @@ func (e *C.io_registry_entry_t) CreateCFProperty(key string) (C.CFTypeRef, error
 	defer k.Release()
 	property := C.IORegistryEntryCreateCFProperty(*e, k, C.kCFAllocatorDefault, 0)
 	if property == 0 {
-		return 0, errors.New("Property not found: " + key)
+		return 0, errors.New("property not found: " + key)
 	}
 	return property, nil
 }
@@ -174,9 +174,9 @@ func (e *C.io_registry_entry_t) GetStringProperty(key string) (string, error) {
 	}
 	// in certain circumstances CFStringGetCStringPtr may return NULL
 	// and we must retrieve the string by copy
-	buff := make([]C.char, 1024)
+	buff := make([]C.char, 1024) //nolint:gomnd
 	if C.CFStringGetCString(C.CFStringRef(property), &buff[0], 1024, 0) != C.true {
-		return "", fmt.Errorf("Property '%s' can't be converted", key)
+		return "", fmt.Errorf("property '%s' can't be converted", key)
 	}
 	return C.GoString(&buff[0]), nil
 }
@@ -188,8 +188,8 @@ func (e *C.io_registry_entry_t) GetIntProperty(key string, intType C.CFNumberTyp
 	}
 	defer property.Release()
 	var res int
-	if C.CFNumberGetValue((C.CFNumberRef)(property), intType, unsafe.Pointer(&res)) != C.true {
-		return res, fmt.Errorf("Property '%s' can't be converted or has been truncated", key)
+	if C.CFNumberGetValue((C.CFNumberRef)(property), intType, unsafe.Pointer(&res)) != C.true { //nolint:gocritic
+		return res, fmt.Errorf("property '%s' can't be converted or has been truncated", key)
 	}
 	return res, nil
 }
@@ -221,7 +221,7 @@ func (o *C.io_object_t) Release() {
 }
 
 func (o *C.io_object_t) GetClass() string {
-	class := make([]C.char, 1024)
+	class := make([]C.char, 1024) //nolint:gomnd
 	C.IOObjectGetClass(*o, &class[0])
 	return C.GoString(&class[0])
 }

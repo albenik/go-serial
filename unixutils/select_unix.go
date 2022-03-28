@@ -15,7 +15,7 @@ import (
 	"github.com/creack/goselect"
 )
 
-// FDSet is a set of file descriptors suitable for a select call
+// FDSet is a set of file descriptors suitable for a select call.
 type FDSet struct {
 	set goselect.FDSet
 	max uintptr

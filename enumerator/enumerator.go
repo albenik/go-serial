@@ -28,12 +28,12 @@ func GetDetailedPortsList() ([]*PortDetails, error) {
 	return nativeGetDetailedPortsList()
 }
 
-// PortEnumerationError is the error type for serial ports enumeration
+// PortEnumerationError is the error type for serial ports enumeration.
 type PortEnumerationError struct {
 	causedBy error
 }
 
-// Error returns the complete error code with details on the cause of the error
+// Error returns the complete error code with details on the cause of the error.
 func (e PortEnumerationError) Error() string {
 	reason := "Error while enumerating serial ports"
 	if e.causedBy != nil {
