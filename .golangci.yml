@@ -38,8 +38,8 @@ linters:
   enable-all: true
   # Please keep in order
   disable:
-    - goerr113           # Useful but not in this package!
     - exhaustivestruct # Unecessary annoying!
+    - goerr113           # Useful but not in this package!
     - gochecknoglobals # Too paranoic!
     - goimports        # Latest gci with sections is good enougth
     - golint           # The linter 'golint' is deprecated (since v1.41.0) due to: The repository of the linter has been archived by the owner.  Replaced by revive.
@@ -50,6 +50,7 @@ linters:
     - paralleltest
     - scopelint        # The linter 'scopelint' is deprecated (since v1.39.0) due to: The repository of the linter has been deprecated by the owner.  Replaced by exportloopref.
     - varnamelen       # Annoying!
+    - unparam          # Panics with GOOS=linux
     - wrapcheck        # Not needed!
     - wsl              # Unecessary annoying!
 

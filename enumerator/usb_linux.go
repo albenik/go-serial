@@ -41,11 +41,11 @@ func nativeGetPortDetails(portPath string) (*PortDetails, error) {
 	}
 	realDevicePath, err := filepath.EvalSymlinks(devicePath)
 	if err != nil {
-		return nil, fmt.Errorf("Can't determine real path of %s: %s", devicePath, err.Error())
+		return nil, fmt.Errorf("can't determine real path of %s: %s", devicePath, err.Error())
 	}
 	subSystemPath, err := filepath.EvalSymlinks(filepath.Join(realDevicePath, "subsystem"))
 	if err != nil {
-		return nil, fmt.Errorf("Can't determine real path of %s: %s", filepath.Join(realDevicePath, "subsystem"), err.Error())
+		return nil, fmt.Errorf("can't determine real path of %s: %s", filepath.Join(realDevicePath, "subsystem"), err.Error())
 	}
 	subSystem := filepath.Base(subSystemPath)
 
@@ -72,25 +72,16 @@ func parseUSBSysFS(usbDevicePath string, details *PortDetails) error {
 	if err != nil {
 		return err
 	}
-	serial, err := readLine(filepath.Join(usbDevicePath, "serial"))
+	serialNum, err := readLine(filepath.Join(usbDevicePath, "serial"))
 	if err != nil {
 		return err
 	}
-	//manufacturer, err := readLine(filepath.Join(usbDevicePath, "manufacturer"))
-	//if err != nil {
-	//	return err
-	//}
-	//product, err := readLine(filepath.Join(usbDevicePath, "product"))
-	//if err != nil {
-	//	return err
-	//}
 
 	details.IsUSB = true
 	details.VID = vid
 	details.PID = pid
-	details.SerialNumber = serial
-	//details.Manufacturer = manufacturer
-	//details.Product = product
+	details.SerialNumber = serialNum
+
 	return nil
 }
 

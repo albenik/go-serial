@@ -9,7 +9,7 @@ on:
 jobs:
   # Test
   tests:
-    name: Test on ${{ matrix.os }} go${{ matrix.go }}
+    name: Test go${{ matrix.go }} on ${{ matrix.os }}
 
     strategy:
       matrix:
@@ -63,7 +63,7 @@ jobs:
 
   # Build
   build:
-    name: Build on ${{ matrix.os }} go${{ matrix.go }} for GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }}
+    name: Build go${{ matrix.go }} ${{ matrix.goos }}/${{ matrix.goarch }} on ${{ matrix.os }}
 
     strategy:
       matrix:
