@@ -19,8 +19,7 @@ const (
 
 	tcCCTS_OFLOW uint64 = 0x00010000 //nolint:revive,stylecheck
 	tcCRTS_IFLOW uint64 = 0x00020000 //nolint:revive,stylecheck
-
-	tcCRTSCTS = tcCCTS_OFLOW | tcCRTS_IFLOW
+	tcCRTSCTS           = tcCCTS_OFLOW | tcCRTS_IFLOW
 )
 
 var databitsMap = map[int]uint64{
