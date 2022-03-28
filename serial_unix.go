@@ -11,7 +11,9 @@
 package serial
 
 import (
+	"errors"
 	"io/ioutil"
+	"path"
 	"regexp"
 	"strings"
 	"syscall"
@@ -25,7 +27,10 @@ import (
 
 const FIONREAD = 0x541B
 
-var zeroByte = []byte{0}
+var (
+	zeroByte   = []byte{0}
+	portNameRx = regexp.MustCompile(regexFilter)
+)
 
 type port struct {
 	handle int
@@ -41,13 +46,14 @@ type port struct {
 func Open(name string, opts ...Option) (*Port, error) {
 	h, err := unix.Open(name, unix.O_RDWR|unix.O_NOCTTY|unix.O_NDELAY, 0)
 	if err != nil {
-		switch err {
-		case unix.EBUSY:
+		switch {
+		case errors.Is(err, unix.EBUSY):
 			return nil, &PortError{code: PortBusy}
-		case unix.EACCES:
+		case errors.Is(err, unix.EACCES):
 			return nil, &PortError{code: PermissionDenied}
+		default:
+			return nil, err
 		}
-		return nil, err
 	}
 
 	// does nothing in build for android
@@ -140,7 +146,7 @@ func (p *Port) Read(b []byte) (int, error) {
 	for read < size {
 		res, err := unixutils.Select(fds, nil, fds, deadline.Sub(now))
 		if err != nil {
-			if err == unix.EINTR {
+			if errors.Is(err, unix.EINTR) {
 				continue
 			}
 			return read, newPortOSError(err)
@@ -155,7 +161,7 @@ func (p *Port) Read(b []byte) (int, error) {
 
 		n, err := unix.Read(p.internal.handle, buf[read:])
 		if err != nil {
-			if err == unix.EINTR {
+			if errors.Is(err, unix.EINTR) {
 				continue
 			}
 			return read, newPortOSError(err)
@@ -298,6 +304,7 @@ func (p *Port) SetReadTimeoutEx(t uint32, _ ...uint32) error {
 		return err // port.retrieveTermSettings() already returned PortError
 	}
 
+	//nolint:gomnd
 	vtime := t / 100 // VTIME tenths of a second elapses between bytes
 	if vtime > 255 || vtime*100 != t {
 		return &PortError{code: InvalidTimeoutValue}
@@ -328,9 +335,8 @@ func (p *Port) SetFirstByteReadTimeout(t uint32) error {
 		p.internal.firstByteTimeout = true
 		p.internal.readTimeout = int(t)
 		return nil
-	} else {
-		return &PortError{code: InvalidTimeoutValue}
 	}
+	return &PortError{code: InvalidTimeoutValue}
 }
 
 func (p *Port) SetWriteTimeout(t int) error {
@@ -413,7 +419,7 @@ func (p *Port) reconfigure() error {
 }
 
 func GetPortsList() ([]string, error) {
-	files, err := ioutil.ReadDir(devFolder)
+	files, err := ioutil.ReadDir(devicesBasePath)
 	if err != nil {
 		return nil, err
 	}
@@ -426,26 +432,21 @@ func GetPortsList() ([]string, error) {
 		}
 
 		// Keep only devices with the correct name
-		match, err := regexp.MatchString(regexFilter, f.Name())
-		if err != nil {
-			return nil, err
-		}
-		if !match {
+		if !portNameRx.MatchString(f.Name()) {
 			continue
 		}
 
-		name := devFolder + "/" + f.Name()
+		name := path.Join(devicesBasePath, f.Name())
 
 		// Check if serial port is real or is a placeholder serial port "ttySxx"
 		if strings.HasPrefix(f.Name(), "ttyS") {
-			port, err := Open(name)
-			if err != nil {
-				serr, ok := err.(*PortError)
-				if ok && serr.Code() == InvalidSerialPort {
+			if port, err := Open(name); err != nil {
+				var portErr *PortError
+				if errors.As(err, &portErr) && portErr.Code() == InvalidSerialPort {
 					continue
 				}
 			} else {
-				port.Close()
+				_ = port.Close()
 			}
 		}
 

@@ -33,37 +33,38 @@ func ExamplePort_GetModemStatusBits() {
 	for count < 25 {
 		status, err := port.GetModemStatusBits()
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err) // DO NOT USER log.Fatal or `port.Close()` deferred call will never happened!
+			return
 		}
 		fmt.Printf("Status: %+v\n", status)
 
 		time.Sleep(time.Second)
 		count++
 		if count == 5 {
-			err := port.SetDTR(false)
-			if err != nil {
-				log.Fatal(err)
+			if err = port.SetDTR(false); err != nil {
+				log.Println(err)
+				return
 			}
 			fmt.Println("Set DTR OFF")
 		}
 		if count == 10 {
-			err := port.SetDTR(true)
-			if err != nil {
-				log.Fatal(err)
+			if err = port.SetDTR(true); err != nil {
+				log.Println(err)
+				return
 			}
 			fmt.Println("Set DTR ON")
 		}
 		if count == 15 {
-			err := port.SetRTS(false)
-			if err != nil {
-				log.Fatal(err)
+			if err = port.SetRTS(false); err != nil {
+				log.Println(err)
+				return
 			}
 			fmt.Println("Set RTS OFF")
 		}
 		if count == 20 {
-			err := port.SetRTS(true)
-			if err != nil {
-				log.Fatal(err)
+			if err = port.SetRTS(true); err != nil {
+				log.Println(err)
+				return
 			}
 			fmt.Println("Set RTS ON")
 		}
