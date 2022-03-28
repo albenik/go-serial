@@ -5,9 +5,8 @@
 // license that can be found in the LICENSE file.
 //
 
-//go:build (linux || darwin || freebsd || openbsd) && !android
-// +build linux darwin freebsd openbsd
-// +build !android
+//go:build (linux && !android) || darwin || freebsd || openbsd
+// +build linux,!android darwin freebsd openbsd
 
 package serial
 

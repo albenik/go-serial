@@ -7,8 +7,8 @@
 // as they are not supported by golang v1.18 for that platform circa 2022-03.
 // Code is identical to android implementation.
 
-//go:build ppc64le
-// +build ppc64le
+//go:build linux && !android && ppc64le
+// +build linux,!android,ppc64le
 
 package serial
 

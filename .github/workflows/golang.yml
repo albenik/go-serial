@@ -64,45 +64,34 @@ jobs:
   # Build
   build:
     name: Build go${{ matrix.go }} ${{ matrix.goos }}/${{ matrix.goarch }} on ${{ matrix.os }}
-    concurrency: cross-build
 
     strategy:
       matrix:
-        os:
-          - 'ubuntu-latest'
-          - 'macos-latest'
-          - 'windows-latest'
-        go:
-          - '1.16'
-          - '1.17'
-          - '1.18'
-        goos:
-          - 'linux'
-          - 'android'
-          - 'darwin'
-          - 'freebsd'
-          - 'openbsd'
-          - 'windows'
-        goarch:
-          - 'amd64'
-          - 'arm64'
-          - 'ppc64le'
+        # `go tool dist list` with many exclusions
+        include:
+          - { os: ubuntu-latest, goos: linux, goarch: amd64 }
+          - { os: ubuntu-latest, goos: linux, goarch: arm64 }
+          - { os: ubuntu-latest, goos: linux, goarch: ppc64le }
 
-        exclude:
-          - os: ubuntu-latest
-            goos: darwin
+          - { os: ubuntu-latest, goos: android, goarch: amd64 }
+          - { os: ubuntu-latest, goos: android, goarch: arm64 }
 
-          - os: windows-latest
-            goos: darwin
+          - { os: ubuntu-latest, goos: freebsd, goarch: amd64 }
+          - { os: ubuntu-latest, goos: freebsd, goarch: arm64 }
 
-          - os: macos-latest
-            goarch: ppc64le
+          - { os: ubuntu-latest, goos: openbsd, goarch: amd64 }
+          - { os: ubuntu-latest, goos: openbsd, goarch: arm64 }
 
-          - os: windows-latest
-            goarch: ppc64le
+          # MacOS IOKit required, so no cross-build available
+          # - { os: ubuntu-latest, goos: darwin, goarch: amd64 }
+          # - { os: ubuntu-latest, goos: darwin, goarch: arm64 }
 
-          - goos: windows
-            goarch: arm64
+          - { os: macos-latest, goos: darwin, goarch: amd64 }
+          # Currently `macos-latest` is equeal to `macos-11` which does not support arm64
+          # - { os: macos-latest, goos: darwin, goarch: arm64 }
+
+          - { os: windows-latest, goos: windows, goarch: amd64 }
+          - { os: windows-latest, goos: windows, goarch: arm64 }
 
     runs-on: ${{ matrix.os }}
 
@@ -117,10 +106,10 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v2
         with:
-          go-version: ${{ matrix.go }}
+          go-version: 1.18
 
       - name: Get dependencies
         run: go mod download
 
       - name: Build
-        run: go build -v .
+        run: go build
