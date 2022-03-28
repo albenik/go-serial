@@ -1,10 +1,18 @@
 # Changelog
 
-## v2.5.1
+## v2 (wip)
+
+* `go mod tudy -go 1.16`.
+* CI Tests: `go1.16`, `go1.17`, `go1.18`.
+* CI Cross-build: cleanup.
+* `golangci-lint` added & code cleaned.
+* obsolete `darwin/386` code removed.
+
+## 2.5.1
 
 * `ppc64le` build supported [#33](https://github.com/albenik/go-serial/pull/33).
 
-## v2.5.0
+## 2.5.0
 
 * `GOOS=android` build supported [#29](https://github.com/albenik/go-serial/issues/29).
 * Unused second argument for unix build in method `Port.SetTimeoutEx()` was made optional in backward compatibility
@@ -16,20 +24,20 @@
 * `GOOS=darwin GOARCH=arm64` build supported [#25](https://github.com/albenik/go-serial/pull/25).
 * Fixed regression in `GOOS=darwin` build was introduced in `v2.3.0`
 
-## v2.3.0
+## 2.3.0
 
 * Some fixes backported from https://github.com/bugst/go-serial [#22](https://github.com/albenik/go-serial/pull/22).
 
-## v2.2.0
+## 2.2.0
 
 * `PortError.Cause()` method added
 
-## v2.1.0
+## 2.1.0
 
 * MacOS extended baudrate support added [#14](https://github.com/albenik/go-serial/pull/14).
 * MacOS wrong generated syscall fixed [#15](https://github.com/albenik/go-serial/issues/15).
 
-## v2.0.0
+## 2.0.0
 
 * New Go Module import path `github.com/albenik/go-serial/v2`
 * `serial.Port` interface discarded in favor of `serial.Port` structure (similar to `os.File`)
@@ -40,7 +48,7 @@
 * `WithHUPCL(bool)` option introduced
 * Minor bugfix & refactoring
 
-## v1.x.x
+## 1.x.x
 
 * Forked from https://github.com/bugst/go-serial
 * Minor but incompatible interface & logic changes implemented
