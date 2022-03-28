@@ -1,8 +1,12 @@
 # Changelog
 
+## v2.5.1
+
+* `ppc64le` build supported [#33](https://github.com/albenik/go-serial/pull/33).
+
 ## v2.5.0
 
-* `GOOS=android` build supported [#29](https://github.com/albenik/go-serial/issues/29)
+* `GOOS=android` build supported [#29](https://github.com/albenik/go-serial/issues/29).
 * Unused second argument for unix build in method `Port.SetTimeoutEx()` was made optional in backward compatibility
   manner.
 * `go 1.13` errors supported: `PortError.Unwrap()` method added, `PortError.Cause()` method marked as deprecated.
