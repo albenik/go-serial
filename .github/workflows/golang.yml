@@ -63,7 +63,7 @@ jobs:
 
   # Build
   build:
-    name: Build go${{ matrix.go }} ${{ matrix.goos }}/${{ matrix.goarch }} on ${{ matrix.os }}
+    name: Build ${{ matrix.goos }}/${{ matrix.goarch }} on ${{ matrix.os }}
 
     strategy:
       matrix:
