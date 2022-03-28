@@ -40,30 +40,31 @@ jobs:
         run: go test -v -race ./...
 
   # Lint
-  lint:
-    name: Lint with go${{ matrix.go }}
-
-    strategy:
-      matrix:
-        go:
-          - 1.16
-          - 1.17
-          - 1.18
-
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-go@v2
-        with:
-          go-version: ${{ matrix.go }}
-      - uses: golangci/golangci-lint-action@v2
-        with:
-          version: v1.45
+  #  lint:
+  #    name: Lint go${{ matrix.go }}
+  #
+  #    strategy:
+  #      matrix:
+  #        go:
+  #          - 1.16
+  #          - 1.17
+  #          - 1.18
+  #
+  #    runs-on: ubuntu-latest
+  #
+  #    steps:
+  #      - uses: actions/checkout@v2
+  #      - uses: actions/setup-go@v2
+  #        with:
+  #          go-version: ${{ matrix.go }}
+  #      - uses: golangci/golangci-lint-action@v2
+  #        with:
+  #          version: v1.45
 
   # Build
   build:
     name: Build go${{ matrix.go }} ${{ matrix.goos }}/${{ matrix.goarch }} on ${{ matrix.os }}
+    concurrency: cross-build
 
     strategy:
       matrix:
@@ -84,6 +85,8 @@ jobs:
           - 'windows'
         goarch:
           - 'amd64'
+          - 'arm64'
+          - 'ppc64le'
 
         exclude:
           - os: ubuntu-latest
@@ -92,21 +95,13 @@ jobs:
           - os: windows-latest
             goos: darwin
 
-        include:
-          - os: ubuntu-latest
-            goos: linux
-            goarch: arm64
-
-          - os: ubuntu-latest
-            goos: linux
+          - os: macos-latest
             goarch: ppc64le
 
-          - os: ubuntu-latest
-            goos: android
-            goarch: arm64
+          - os: windows-latest
+            goarch: ppc64le
 
-          - os: ubuntu-latest
-            goos: openbsd
+          - goos: windows
             goarch: arm64
 
     runs-on: ${{ matrix.os }}

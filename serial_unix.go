@@ -79,7 +79,7 @@ func Open(name string, opts ...Option) (*Port, error) {
 
 	fds := []int{0, 0}
 	if err := syscall.Pipe(fds); err != nil {
-		p.Close()
+		_ = p.Close()
 		return nil, p.closeAndReturnError(OsError, err)
 	}
 	p.internal.closePipeR = fds[0]

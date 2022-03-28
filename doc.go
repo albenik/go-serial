@@ -5,6 +5,7 @@
 //
 
 /*
+
 Package go-serial is a cross-platform serial library for the go language.
 
 	import github.com/albenik/go-serial/v2
@@ -106,4 +107,5 @@ Unfortunately the USB enumeration package for darwin (MacOSX) requires cgo
 to access the IOKit framework. This means that if you need USB enumeration
 on darwin you're forced to use cgo.
 */
+
 package serial
