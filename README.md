@@ -25,7 +25,7 @@ go get -u github.com/albenik/go-serial/v2
 
 ## Documentation and examples
 
-See the godoc here: https://godoc.org/github.com/albenik/go-serial
+See the godoc here: https://pkg.go.dev/github.com/albenik/go-serial/v2
 
 ## License
 
