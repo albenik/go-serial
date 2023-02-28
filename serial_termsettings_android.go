@@ -5,7 +5,6 @@
 //
 
 //go:build android
-// +build android
 
 package serial
 

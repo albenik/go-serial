@@ -5,7 +5,6 @@
 //
 
 //go:build darwin
-// +build darwin
 
 package serial
 

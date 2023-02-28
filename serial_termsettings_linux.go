@@ -5,7 +5,6 @@
 //
 
 //go:build linux && !android && !ppc64le
-// +build linux,!android,!ppc64le
 
 package serial
 
