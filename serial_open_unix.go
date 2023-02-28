@@ -6,7 +6,6 @@
 //
 
 //go:build (linux && !android) || darwin || freebsd || openbsd
-// +build linux,!android darwin freebsd openbsd
 
 package serial
 

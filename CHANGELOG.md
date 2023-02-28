@@ -1,9 +1,9 @@
 # Changelog
 
-## v2 (wip)
+## 2.6.0
 
-* `go mod tudy -go 1.16`.
-* CI Tests: `go1.16`, `go1.17`, `go1.18`.
+* `go mod tudy -go 1.18`.
+* CI Tests: `go1.18`, `go1.19`, `go1.20`.
 * CI Cross-build: cleanup.
 * `golangci-lint` added & code cleaned.
 * obsolete `darwin/386` code removed.

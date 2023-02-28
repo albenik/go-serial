@@ -5,7 +5,6 @@
 //
 
 //go:build go1.10 && darwin
-// +build go1.10,darwin
 
 package enumerator
 
