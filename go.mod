@@ -3,7 +3,7 @@ module github.com/albenik/go-serial/v2
 go 1.18
 
 require (
-	github.com/creack/goselect v0.1.2
+	github.com/creack/goselect v0.1.3-0.20221130125424-8eac7f782437
 	github.com/stretchr/testify v1.7.1
 	go.uber.org/multierr v1.9.0
 	golang.org/x/sys v0.5.0
