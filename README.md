@@ -1,4 +1,4 @@
-# github.com/albenik/go-serial/v2
+# github.com/bclswl0827/go-serial/v2
 
 ![Go](https://github.com/albenik/go-serial/workflows/Go/badge.svg)
 
@@ -15,7 +15,7 @@ Any PR-s are welcome.
 Not work in GOPATH mode!!!
 
 ```
-go get -u github.com/albenik/go-serial/v2
+go get -u github.com/bclswl0827/go-serial/v2
 ```
 
 ## MacOS build note
@@ -25,7 +25,7 @@ go get -u github.com/albenik/go-serial/v2
 
 ## Documentation and examples
 
-See the godoc here: https://pkg.go.dev/github.com/albenik/go-serial/v2
+See the godoc here: https://pkg.go.dev/github.com/bclswl0827/go-serial/v2
 
 ## License
 

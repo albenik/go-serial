@@ -1,4 +1,4 @@
-module github.com/albenik/go-serial/v2
+module github.com/bclswl0827/go-serial/v2
 
 go 1.18
 

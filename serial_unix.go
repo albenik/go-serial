@@ -21,7 +21,7 @@ import (
 	"go.uber.org/multierr"
 	"golang.org/x/sys/unix"
 
-	"github.com/albenik/go-serial/v2/unixutils"
+	"github.com/bclswl0827/go-serial/v2/unixutils"
 )
 
 const FIONREAD = 0x541B

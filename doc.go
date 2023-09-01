@@ -8,7 +8,7 @@
 
 Package go-serial is a cross-platform serial library for the go language.
 
-	import github.com/albenik/go-serial/v2
+	import github.com/bclswl0827/go-serial/v2
 
 It is possible to get the list of available serial ports with the
 GetPortsList function:
@@ -81,7 +81,7 @@ cable or a microcontroller development board) is possible to retrieve
 the USB metadata, like VID/PID or USB Serial Number, with the
 GetDetailedPortsList function in the enumerator package:
 
-	import "github.com/albenik/go-serial/v2/enumerator"
+	import "github.com/bclswl0827/go-serial/v2/enumerator"
 
 	ports, err := enumerator.GetDetailedPortsList()
 	if err != nil {

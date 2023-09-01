@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/albenik/go-serial/v2"
+	"github.com/bclswl0827/go-serial/v2"
 )
 
 func TestPortNilReciever_Error(t *testing.T) {
