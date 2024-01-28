@@ -25,7 +25,9 @@ const (
 	MarkParity
 	// SpaceParity enable space-parity (always 0) check.
 	SpaceParity
+)
 
+const (
 	// OneStopBit sets 1 stop bit (default).
 	OneStopBit StopBits = iota
 	// OnePointFiveStopBits sets 1.5 stop bits.

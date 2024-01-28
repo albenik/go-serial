@@ -95,5 +95,4 @@ jobs:
       - uses: actions/setup-go@v4
         with:
           go-version: '1.21'
-      - run: go mod download
-      - run: go build
+      - run: uname -a && go build
