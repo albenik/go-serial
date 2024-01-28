@@ -382,7 +382,7 @@ func (p *Port) retrieveModemBitsStatus() (int, error) {
 }
 
 func (p *Port) applyModemBitsStatus(status int) error {
-	if err := unix.IoctlSetInt(p.internal.handle, unix.TIOCMSET, status); err != nil {
+	if err := unix.IoctlSetPointerInt(p.internal.handle, unix.TIOCMSET, status); err != nil {
 		return newPortOSError(err)
 	}
 	return nil
