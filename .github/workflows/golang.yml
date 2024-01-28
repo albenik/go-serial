@@ -79,8 +79,7 @@ jobs:
           # - { os: ubuntu-latest, goos: darwin, goarch: arm64 }
 
           - { os: macos-latest, goos: darwin, goarch: amd64 }
-          # Currently `macos-latest` is equal to `macos-11` which does not support arm64
-          # - { os: macos-latest, goos: darwin, goarch: arm64 }
+          - { os: macos-latest, goos: darwin, goarch: arm64 }
 
           - { os: windows-latest, goos: windows, goarch: amd64 }
           - { os: windows-latest, goos: windows, goarch: arm64 }
