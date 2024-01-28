@@ -68,22 +68,22 @@ func (r *FDResultSets) IsError(fd int) bool {
 // The function return an FDResultSets that contains all the file descriptor
 // that have a pending read/write/error event.
 func Select(rd, wr, er *FDSet, timeout time.Duration) (*FDResultSets, error) {
-	max := uintptr(0)
+	maxval := uintptr(0)
 	res := &FDResultSets{}
 	if rd != nil {
 		// fdsets are copied so the parameters are left untouched
 		copyOfRd := rd.set
 		res.readable = &copyOfRd
 		// Determine max fd.
-		max = rd.max
+		maxval = rd.max
 	}
 	if wr != nil {
 		// fdsets are copied so the parameters are left untouched
 		copyOfWr := wr.set
 		res.writeable = &copyOfWr
 		// Determine max fd.
-		if wr.max > max {
-			max = wr.max
+		if wr.max > maxval {
+			maxval = wr.max
 		}
 	}
 	if er != nil {
@@ -91,11 +91,11 @@ func Select(rd, wr, er *FDSet, timeout time.Duration) (*FDResultSets, error) {
 		copyOfEr := er.set
 		res.errors = &copyOfEr
 		// Determine max fd.
-		if er.max > max {
-			max = er.max
+		if er.max > maxval {
+			maxval = er.max
 		}
 	}
 
-	err := goselect.Select(int(max+1), res.readable, res.writeable, res.errors, timeout)
+	err := goselect.Select(int(maxval+1), res.readable, res.writeable, res.errors, timeout)
 	return res, err
 }

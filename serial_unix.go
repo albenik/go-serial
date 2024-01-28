@@ -11,7 +11,7 @@ package serial
 
 import (
 	"errors"
-	"io/ioutil"
+	"os"
 	"path"
 	"regexp"
 	"strings"
@@ -418,7 +418,7 @@ func (p *Port) reconfigure() error {
 }
 
 func GetPortsList() ([]string, error) {
-	files, err := ioutil.ReadDir(devicesBasePath)
+	files, err := os.ReadDir(devicesBasePath)
 	if err != nil {
 		return nil, err
 	}

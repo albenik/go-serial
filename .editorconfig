@@ -17,6 +17,6 @@ ij_go_move_all_stdlib_imports_in_one_group = true
 ij_go_local_group_mode = project
 ij_go_GROUP_CURRENT_PROJECT_IMPORTS = true
 
-[*.{yml, yaml}]
+[*.{yml,yaml}]
 indent_style = space
 indent_size = 2

@@ -10,7 +10,7 @@ import (
 	"github.com/albenik/go-serial/v2"
 )
 
-func TestPortNilReciever_Error(t *testing.T) {
+func TestPortNilReceiver_Error(t *testing.T) {
 	checkError := func(err error) {
 		var portErr *serial.PortError
 		require.ErrorAs(t, err, &portErr)
@@ -79,7 +79,7 @@ func TestPortNilReciever_Error(t *testing.T) {
 	})
 }
 
-func TestPortTestPortNilReciever_String(t *testing.T) {
+func TestPortTestPortNilReceiver_String(t *testing.T) {
 	var p *serial.Port
 	assert.Equal(t, "Error: <nil> port instance", p.String())
 }
