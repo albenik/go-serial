@@ -61,34 +61,35 @@ jobs:
       matrix:
         # `go tool dist list` with many exclusions
         include:
-          - { os: ubuntu-latest, goos: linux, goarch: amd64 }
-          - { os: ubuntu-latest, goos: linux, goarch: arm64 }
-          - { os: ubuntu-latest, goos: linux, goarch: ppc64le }
+          - { os: ubuntu-latest, goos: linux, goarch: amd64, cgo: '0' }
+          - { os: ubuntu-latest, goos: linux, goarch: arm64, cgo: '0' }
+          - { os: ubuntu-latest, goos: linux, goarch: ppc64le, cgo: '0' }
 
-          - { os: ubuntu-latest, goos: android, goarch: amd64 }
-          - { os: ubuntu-latest, goos: android, goarch: arm64 }
+          - { os: ubuntu-latest, goos: android, goarch: amd64, cgo: '0' }
+          - { os: ubuntu-latest, goos: android, goarch: arm64, cgo: '0' }
 
-          - { os: ubuntu-latest, goos: freebsd, goarch: amd64 }
-          - { os: ubuntu-latest, goos: freebsd, goarch: arm64 }
+          - { os: ubuntu-latest, goos: freebsd, goarch: amd64, cgo: '0' }
+          - { os: ubuntu-latest, goos: freebsd, goarch: arm64, cgo: '0' }
 
-          - { os: ubuntu-latest, goos: openbsd, goarch: amd64 }
-          - { os: ubuntu-latest, goos: openbsd, goarch: arm64 }
+          - { os: ubuntu-latest, goos: openbsd, goarch: amd64, cgo: '0' }
+          - { os: ubuntu-latest, goos: openbsd, goarch: arm64, cgo: '0' }
 
           # MacOS IOKit required, so no cross-build available
           # - { os: ubuntu-latest, goos: darwin, goarch: amd64 }
           # - { os: ubuntu-latest, goos: darwin, goarch: arm64 }
 
-          - { os: macos-latest, goos: darwin, goarch: amd64 }
-          - { os: macos-latest, goos: darwin, goarch: arm64 }
+          - { os: macos-latest, goos: darwin, goarch: amd64, cgo: '1' }
+          - { os: macos-latest, goos: darwin, goarch: arm64, cgo: '1' }
 
-          - { os: windows-latest, goos: windows, goarch: amd64 }
-          - { os: windows-latest, goos: windows, goarch: arm64 }
+          - { os: windows-latest, goos: windows, goarch: amd64, cgo: '0' }
+          - { os: windows-latest, goos: windows, goarch: arm64, cgo: '0' }
 
     runs-on: ${{ matrix.os }}
 
     env:
       GOOS: ${{ matrix.goos }}
       GOARCH: ${{ matrix.goarch }}
+      CGO_ENABLED: ${{ matrix.cgo }}
 
     steps:
       - uses: actions/checkout@v4
